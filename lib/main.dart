@@ -17,15 +17,16 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // TODO: Re-enable Firebase after fixing configuration
   // Initialize Firebase
-  try {
-    await Firebase.initializeApp();
-    // Set background message handler
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  } catch (e) {
-    print('Firebase initialization error: $e');
-    // Continue without Firebase if initialization fails
-  }
+  // try {
+  //   await Firebase.initializeApp();
+  //   // Set background message handler
+  //   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // } catch (e) {
+  //   print('Firebase initialization error: $e');
+  //   // Continue without Firebase if initialization fails
+  // }
 
   runApp(const SefraApp());
 }
