@@ -3,12 +3,7 @@ workflows:
     name: iOS Workflow
     max_build_duration: 120
     instance_type: mac_mini_m1
-    integrations:
-      app_store_connect: codemagic
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.sefra
       vars:
         XCODE_WORKSPACE: "Runner.xcworkspace"
         XCODE_SCHEME: "Runner"
@@ -18,9 +13,6 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Set up code signing settings on Xcode project
-        script: |
-          xcode-project use-profiles
       - name: Get Flutter packages
         script: |
           flutter packages pub get
@@ -30,14 +22,11 @@ workflows:
       - name: Flutter analyze
         script: |
           flutter analyze
-      - name: Flutter build ipa
+      - name: Flutter build iOS (no codesign)
         script: |
-          flutter build ipa --release \
-            --build-name=1.0.0 \
-            --build-number=$(($(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID") + 1)) \
-            --export-options-plist=/Users/builder/export_options.plist
+          flutter build ios --release --no-codesign
     artifacts:
-      - build/ios/ipa/*.ipa
+      - build/ios/iphoneos/*.app
       - /tmp/xcodebuild_logs/*.log
       - flutter_drive.log
     publishing:
@@ -47,12 +36,9 @@ workflows:
         notify:
           success: true
           failure: true
-      app_store_connect:
+      # app_store_connect:
         # Uncomment when ready to publish to App Store
         # api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         # key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         # issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-
-        # For now, use TestFlight only
-        submit_to_testflight: true
-        # submit_to_app_store: false
+        # submit_to_testflight: true
