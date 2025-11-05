@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase configuration files (sensitive)
+GoogleService-Info.plist
+google-services.json
+
+# Apple Developer authentication keys (sensitive)
+*.p8
+AuthKey_*.p8
