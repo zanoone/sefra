@@ -7,7 +7,7 @@ workflows:
       vars:
         XCODE_WORKSPACE: "Runner.xcworkspace"
         XCODE_SCHEME: "Runner"
-        BUNDLE_ID: "com.sefra"
+        BUNDLE_ID: "kr.sefra"
         APP_STORE_APPLE_ID: 1234567890 # Replace with your App Store ID
       flutter: stable
       xcode: latest
