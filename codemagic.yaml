@@ -7,8 +7,8 @@ workflows:
       vars:
         XCODE_WORKSPACE: "Runner.xcworkspace"
         XCODE_SCHEME: "Runner"
-        BUNDLE_ID: "com.sefra.sefraFlutter"
-        APP_STORE_APPLE_ID: 1234567890 # Replace with your App Store ID
+        BUNDLE_ID: "sefra.kr"
+        APP_STORE_APPLE_ID: 6754912654
         GOOGLE_SERVICE_INFO_PLIST: Encrypted(...) # Add in Codemagic UI: Environment variables
       flutter: stable
       xcode: latest
@@ -43,9 +43,8 @@ workflows:
         notify:
           success: true
           failure: true
-      # app_store_connect:
-        # Uncomment when ready to publish to App Store
-        # api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        # key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        # issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        # submit_to_testflight: true
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
