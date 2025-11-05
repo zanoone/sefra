@@ -1,6 +1,5 @@
 import Flutter
 import UIKit
-import Firebase
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -8,9 +7,6 @@ import Firebase
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // Initialize Firebase before plugin registration
-    FirebaseApp.configure()
-
     GeneratedPluginRegistrant.register(with: self)
 
     // Register for remote notifications
