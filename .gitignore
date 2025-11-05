@@ -45,7 +45,7 @@ app.*.map.json
 /android/app/release
 
 # Firebase configuration files (sensitive)
-GoogleService-Info.plist
+# GoogleService-Info.plist  # Committing for CI/CD
 google-services.json
 
 # Apple Developer authentication keys (sensitive)

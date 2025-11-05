@@ -14,10 +14,6 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
-      # TODO: Fix GOOGLE_SERVICE_INFO_PLIST environment variable
-      # - name: Set up Firebase configuration
-      #   script: |
-      #     echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/Runner/GoogleService-Info.plist
       - name: Get Flutter packages
         script: |
           flutter packages pub get
