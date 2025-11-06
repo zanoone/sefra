@@ -9,7 +9,6 @@ workflows:
         XCODE_SCHEME: "Runner"
         BUNDLE_ID: "sefra.kr"
         APP_STORE_APPLE_ID: 6754912654
-        GOOGLE_SERVICE_INFO_PLIST: Encrypted(...) # Add in Codemagic UI: Environment variables
       flutter: stable
       xcode: latest
       cocoapods: default
