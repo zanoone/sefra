@@ -20,6 +20,24 @@ workflows:
       - name: Get Flutter packages
         script: |
           flutter packages pub get
+      - name: Setup iOS Entitlements
+        script: |
+          # Add entitlements to Xcode project using PlistBuddy
+          /usr/libexec/PlistBuddy -c "Add :CODE_SIGN_ENTITLEMENTS string Runner/Runner.entitlements" ios/Runner.xcodeproj/project.pbxproj || true
+
+          # Ensure Runner.entitlements exists
+          if [ ! -f ios/Runner/Runner.entitlements ]; then
+            cat > ios/Runner/Runner.entitlements << 'ENTITLEMENTS'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>aps-environment</key>
+            <string>production</string>
+          </dict>
+          </plist>
+          ENTITLEMENTS
+          fi
       - name: Clean and update pods
         script: |
           cd ios
