@@ -6,25 +6,41 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
+import 'firebase_options.dart';
 
 // Background message handler (must be top-level function)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  print('Background message: ${message.notification?.title}');
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('Background message: ${message.notification?.title}');
+  } catch (e) {
+    print('Background Firebase init error: $e');
+  }
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase
+  // Initialize Firebase with explicit options
   try {
-    await Firebase.initializeApp();
-    // Set background message handler
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    print('Firebase initialized successfully');
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('✅ Firebase initialized successfully');
+
+    // Set background message handler only if Firebase init succeeded
+    try {
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      print('✅ Firebase background handler registered');
+    } catch (e) {
+      print('⚠️ Background handler registration error: $e');
+    }
   } catch (e) {
-    print('Firebase initialization error: $e');
+    print('❌ Firebase initialization error: $e');
+    print('⚠️ App will continue without Firebase features');
     // Continue without Firebase if initialization fails
   }
 
