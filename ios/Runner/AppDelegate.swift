@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
-import Firebase
+// FIREBASE TEMPORARILY DISABLED FOR DEBUGGING (v1.0.0+22)
+// import Firebase
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -8,8 +9,11 @@ import Firebase
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // Initialize Firebase FIRST (before Flutter plugins)
-    FirebaseApp.configure()
+    // FIREBASE INITIALIZATION DISABLED FOR DEBUGGING (v1.0.0+22)
+    // Testing if Firebase is causing the crash on real devices
+    // FirebaseApp.configure()
+
+    print("⚠️ DEBUG MODE: Firebase initialization skipped")
 
     // Register plugins before calling super to avoid QoS warning
     GeneratedPluginRegistrant.register(with: self)

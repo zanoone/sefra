@@ -1,24 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+// FIREBASE TEMPORARILY DISABLED FOR DEBUGGING (v1.0.0+22)
+// import 'package:firebase_core/firebase_core.dart';
+// import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
-import 'firebase_options.dart';
+// import 'firebase_options.dart';
 
+// FIREBASE BACKGROUND HANDLER DISABLED FOR DEBUGGING
 // Background message handler (must be top-level function)
 // Firebase is already initialized in native iOS code (AppDelegate.swift)
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // No need to initialize Firebase here - already done in native code
-  print('📬 Background message: ${message.notification?.title}');
-}
+// @pragma('vm:entry-point')
+// Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+//   // No need to initialize Firebase here - already done in native code
+//   print('📬 Background message: ${message.notification?.title}');
+// }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // FIREBASE INITIALIZATION DISABLED FOR DEBUGGING (v1.0.0+22)
+  // Testing if Firebase is causing the crash on real devices
+  /*
   // Firebase is already initialized in native iOS code (AppDelegate.swift)
   // This ensures compatibility with background message handlers
   try {
@@ -34,6 +39,9 @@ void main() async {
     print('❌ Firebase initialization error: $e');
     print('⚠️ App will continue without Firebase features');
   }
+  */
+
+  print('⚠️ DEBUG MODE: Firebase is disabled for crash debugging');
 
   runApp(const SefraApp());
 }
@@ -77,7 +85,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   Future<void> _initialize() async {
     await _getDeviceId();
-    await _setupFCM();
+    // FIREBASE FCM DISABLED FOR DEBUGGING (v1.0.0+22)
+    // await _setupFCM();
+    print('⚠️ DEBUG MODE: FCM setup skipped');
     setState(() {
       isInitialized = true;
     });
@@ -100,6 +110,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
     }
   }
 
+  // FIREBASE FCM SETUP DISABLED FOR DEBUGGING (v1.0.0+22)
+  /*
   // Setup Firebase Cloud Messaging
   Future<void> _setupFCM() async {
     try {
@@ -155,6 +167,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       // Continue without FCM if setup fails
     }
   }
+  */
 
   // Show notification dialog
   void _showNotificationDialog(String title, String body) {
@@ -258,11 +271,12 @@ class _WebViewScreenState extends State<WebViewScreen> {
               },
             );
 
+            // FIREBASE FCM HANDLER DISABLED FOR DEBUGGING (v1.0.0+22)
             controller.addJavaScriptHandler(
               handlerName: 'getFCMToken',
               callback: (args) async {
-                final prefs = await SharedPreferences.getInstance();
-                return prefs.getString('fcm_token') ?? fcmToken;
+                // Return empty/debug token when Firebase is disabled
+                return 'DEBUG_MODE_NO_FCM';
               },
             );
 
@@ -330,7 +344,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
               console.log('✅ Sefra Flutter WebView Bridge Ready');
               console.log('✅ Device ID: $deviceId');
-              console.log('✅ FCM Token: ${fcmToken.isNotEmpty ? "Available" : "Loading..."}');
+              console.log('⚠️ DEBUG MODE: Firebase/FCM is disabled for crash debugging');
             """);
           },
           onConsoleMessage: (controller, consoleMessage) {
