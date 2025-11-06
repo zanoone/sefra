@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import Firebase
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -7,6 +8,9 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Initialize Firebase FIRST (before Flutter plugins)
+    FirebaseApp.configure()
+
     // Register plugins before calling super to avoid QoS warning
     GeneratedPluginRegistrant.register(with: self)
 

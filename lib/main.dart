@@ -8,21 +8,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'firebase_options.dart';
 
+// Background message handler (must be top-level function)
+// Firebase is already initialized in native iOS code (AppDelegate.swift)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // No need to initialize Firebase here - already done in native code
+  print('📬 Background message: ${message.notification?.title}');
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase with explicit options
-  // NOTE: Background message handler is temporarily disabled to fix crash
-  // Will be re-enabled once the app launches successfully
+  // Firebase is already initialized in native iOS code (AppDelegate.swift)
+  // This ensures compatibility with background message handlers
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
     print('✅ Firebase initialized successfully');
+
+    // Register background message handler
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    print('✅ Background message handler registered');
   } catch (e) {
     print('❌ Firebase initialization error: $e');
     print('⚠️ App will continue without Firebase features');
-    // Continue without Firebase if initialization fails
   }
 
   runApp(const SefraApp());
