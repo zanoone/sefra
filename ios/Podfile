@@ -94,4 +94,16 @@ post_install do |installer|
   installer.pods_project.build_configurations.each do |config|
     config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
   end
+
+  # Fix firebase_messaging plugin header to use modular imports
+  firebase_messaging_header = File.join(Dir.home, '.pub-cache/hosted/pub.dev/firebase_messaging-14.7.10/ios/Classes/FLTFirebaseMessagingPlugin.h')
+  if File.exist?(firebase_messaging_header)
+    content = File.read(firebase_messaging_header)
+    if content.include?('#import <Firebase/Firebase.h>')
+      puts 'Fixing firebase_messaging plugin header for modular imports...'
+      content.gsub!('#import <Firebase/Firebase.h>', "#import <FirebaseCore/FirebaseCore.h>\n#import <FirebaseMessaging/FirebaseMessaging.h>")
+      File.write(firebase_messaging_header, content)
+      puts 'Firebase_messaging header fixed!'
+    end
+  end
 end
