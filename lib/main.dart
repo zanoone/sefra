@@ -8,36 +8,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'firebase_options.dart';
 
-// Background message handler (must be top-level function)
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    print('Background message: ${message.notification?.title}');
-  } catch (e) {
-    print('Background Firebase init error: $e');
-  }
-}
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase with explicit options
+  // NOTE: Background message handler is temporarily disabled to fix crash
+  // Will be re-enabled once the app launches successfully
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
     print('✅ Firebase initialized successfully');
-
-    // Set background message handler only if Firebase init succeeded
-    try {
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-      print('✅ Firebase background handler registered');
-    } catch (e) {
-      print('⚠️ Background handler registration error: $e');
-    }
   } catch (e) {
     print('❌ Firebase initialization error: $e');
     print('⚠️ App will continue without Firebase features');
@@ -120,12 +101,14 @@ class _WebViewScreenState extends State<WebViewScreen> {
       );
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        print('User granted permission');
+        print('✅ User granted notification permission');
+      } else {
+        print('⚠️ Notification permission denied');
       }
 
       // Get FCM token
       fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
-      print('FCM Token: $fcmToken');
+      print('✅ FCM Token: ${fcmToken.isNotEmpty ? "Obtained" : "Empty"}');
 
       // Save token
       final prefs = await SharedPreferences.getInstance();
@@ -135,12 +118,12 @@ class _WebViewScreenState extends State<WebViewScreen> {
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
         fcmToken = newToken;
         prefs.setString('fcm_token', newToken);
-        print('FCM Token refreshed: $newToken');
+        print('🔄 FCM Token refreshed');
       });
 
       // Handle foreground messages
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        print('Foreground message: ${message.notification?.title}');
+        print('📬 Foreground message: ${message.notification?.title}');
 
         // Show notification to user
         if (message.notification != null) {
@@ -153,10 +136,13 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
       // Handle notification tap (app opened from background)
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        print('Notification tapped: ${message.data}');
+        print('👆 Notification tapped: ${message.data}');
       });
+
+      print('✅ FCM setup completed successfully');
     } catch (e) {
-      print('Error setting up FCM: $e');
+      print('❌ Error setting up FCM: $e');
+      // Continue without FCM if setup fails
     }
   }
 
