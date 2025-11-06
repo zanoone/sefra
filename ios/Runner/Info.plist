@@ -49,5 +49,10 @@
 	<string>Sefra uses Face ID for secure authentication</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Sefra needs camera access for identity verification</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>
