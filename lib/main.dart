@@ -60,6 +60,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   final LocalAuthentication auth = LocalAuthentication();
   String deviceId = '';
   String fcmToken = '';
+  bool isInitialized = false;
 
   @override
   void initState() {
@@ -70,6 +71,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
   Future<void> _initialize() async {
     await _getDeviceId();
     await _setupFCM();
+    setState(() {
+      isInitialized = true;
+    });
   }
 
   // Get device ID
@@ -206,11 +210,20 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 초기화 완료될 때까지 로딩 화면 표시
+    if (!isInitialized) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       body: SafeArea(
         child: InAppWebView(
           initialUrlRequest: URLRequest(
-            url: WebUri('https://test.sefra.com?device=$deviceId'),
+            url: WebUri('https://sefra.kr?device=$deviceId'),
           ),
           initialSettings: InAppWebViewSettings(
             javaScriptEnabled: true,
