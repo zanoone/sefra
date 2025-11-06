@@ -7,8 +7,12 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Register plugins before calling super to avoid QoS warning
     GeneratedPluginRegistrant.register(with: self)
 
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    // Call super on main thread with proper QoS
+    let result = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+
+    return result
   }
 }

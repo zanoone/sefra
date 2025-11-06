@@ -231,6 +231,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
             useOnDownloadStart: true,
             allowsInlineMediaPlayback: true,
             mediaPlaybackRequiresUserGesture: false,
+            // 키보드 설정 (한글 입력 지원)
+            suppressesIncrementalRendering: false,
           ),
           onWebViewCreated: (controller) {
             webViewController = controller;

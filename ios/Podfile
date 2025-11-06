@@ -57,6 +57,10 @@ post_install do |installer|
       # Disable module map validation
       config.build_settings['SWIFT_INCLUDE_PATHS'] = '$(inherited) $(PODS_CONFIGURATION_BUILD_DIR)'
 
+      # Fix Swift 6.0 compatibility issues with Firebase
+      config.build_settings['SWIFT_VERSION'] = '5.0'
+      config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
+
       # Fix for Xcode 15
       if config.base_configuration_reference
         xcconfig_path = config.base_configuration_reference.real_path
