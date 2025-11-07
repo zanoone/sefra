@@ -4,6 +4,8 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m1
     environment:
+      groups:
+        - Sefra
       ios_signing:
         distribution_type: app_store
         bundle_identifier: sefra.kr
@@ -73,6 +75,8 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
+      groups:
+        - Sefra
       ios_signing:
         distribution_type: development
         bundle_identifier: sefra.kr
