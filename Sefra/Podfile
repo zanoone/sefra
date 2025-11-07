@@ -12,15 +12,6 @@ target 'Sefra' do
   pod 'Firebase/Analytics'
   pod 'Firebase/Messaging'
 
-  target 'SefraTests' do
-    inherit! :search_paths
-    # Pods for testing
-  end
-
-  target 'SefraUITests' do
-    # Pods for testing
-  end
-
 end
 
 post_install do |installer|
