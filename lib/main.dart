@@ -215,7 +215,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
     // Simple test screen without WebView (v1.0.0+26 testing)
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sefra Test (v1.0.0+26)'),
+        title: const Text('Sefra Test (v1.0.0+27)'),
         backgroundColor: Colors.blue,
       ),
       body: SafeArea(
@@ -246,7 +246,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              _buildInfoRow('Version', '1.0.0+26'),
+              _buildInfoRow('Version', '1.0.0+27'),
               _buildInfoRow('Device ID', deviceId.isEmpty ? 'Loading...' : deviceId),
               _buildInfoRow('FCM Token', fcmToken.isEmpty ? 'Not available' : 'Obtained'),
               const SizedBox(height: 20),
