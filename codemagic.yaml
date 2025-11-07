@@ -46,9 +46,22 @@ workflows:
       - name: Flutter analyze
         script: |
           flutter analyze
-      - name: Build iOS release
+      - name: Build iOS release with Xcode (skip Flutter build)
         script: |
-          flutter build ipa --release
+          cd ios
+          xcodebuild archive \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath $CM_BUILD_DIR/build/ios/Runner.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+          xcodebuild -exportArchive \
+            -archivePath $CM_BUILD_DIR/build/ios/Runner.xcarchive \
+            -exportPath $CM_BUILD_DIR/build/ios/ipa \
+            -exportOptionsPlist $CM_BUILD_DIR/ios/exportOptions.plist
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
