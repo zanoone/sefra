@@ -1,75 +1,60 @@
 workflows:
-  ios-workflow:
-    name: iOS Workflow
+  ios-release:
+    name: Sefra iOS Release Build
     max_build_duration: 120
     instance_type: mac_mini_m1
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: sefra.kr
       vars:
-        XCODE_WORKSPACE: "Runner.xcworkspace"
-        XCODE_SCHEME: "Runner"
+        XCODE_WORKSPACE: "Sefra/Sefra.xcworkspace"
+        XCODE_SCHEME: "Sefra"
         BUNDLE_ID: "sefra.kr"
         APP_STORE_APPLE_ID: 6754912654
-      flutter: stable
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Clean Flutter build
+      - name: Install CocoaPods dependencies
         script: |
-          flutter clean
-      - name: Get Flutter packages
-        script: |
-          flutter packages pub get
-      - name: Setup iOS Entitlements
-        script: |
-          # Add entitlements to Xcode project using PlistBuddy
-          /usr/libexec/PlistBuddy -c "Add :CODE_SIGN_ENTITLEMENTS string Runner/Runner.entitlements" ios/Runner.xcodeproj/project.pbxproj || true
-
-          # Ensure Runner.entitlements exists
-          if [ ! -f ios/Runner/Runner.entitlements ]; then
-            cat > ios/Runner/Runner.entitlements << 'ENTITLEMENTS'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>aps-environment</key>
-            <string>production</string>
-          </dict>
-          </plist>
-          ENTITLEMENTS
-          fi
-      - name: Clean and update pods
-        script: |
-          cd ios
-          pod deintegrate || true
-          rm -rf Pods Podfile.lock
+          cd Sefra
           pod install --repo-update
-      - name: Flutter analyze
+      - name: Set up keychain
         script: |
-          flutter analyze
-      - name: Generate Flutter build files
+          keychain initialize
+      - name: Fetch signing files
         script: |
-          # Generate Generated.xcconfig and other required files
-          flutter build ios --release --no-codesign || true
-      - name: Build iOS release with Xcode
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Add certificates to keychain
         script: |
-          cd ios
-          xcodebuild archive \
-            -workspace Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -archivePath $CM_BUILD_DIR/build/ios/Runner.xcarchive \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
-
-          xcodebuild -exportArchive \
-            -archivePath $CM_BUILD_DIR/build/ios/Runner.xcarchive \
-            -exportPath $CM_BUILD_DIR/build/ios/ipa \
-            -exportOptionsPlist $CM_BUILD_DIR/ios/exportOptions.plist
+          keychain add-certificates
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+      - name: Verify iOS Entitlements
+        script: |
+          # Verify Sefra.entitlements exists
+          if [ ! -f Sefra/Sefra/Sefra.entitlements ]; then
+            echo "⚠️ Warning: Sefra.entitlements not found!"
+            exit 1
+          else
+            echo "✅ Sefra.entitlements found"
+            cat Sefra/Sefra/Sefra.entitlements
+          fi
+      - name: Build ipa for distribution
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --config "Release" \
+            --export-options-plist "Sefra/exportOptions.plist"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-      - flutter_drive.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
     publishing:
       email:
         recipients:
@@ -82,3 +67,54 @@ workflows:
         key_id: $APP_STORE_CONNECT_API_KEY_ID
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
+
+  ios-debug:
+    name: Sefra iOS Debug Build
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      ios_signing:
+        distribution_type: development
+        bundle_identifier: sefra.kr
+      vars:
+        XCODE_WORKSPACE: "Sefra/Sefra.xcworkspace"
+        XCODE_SCHEME: "Sefra"
+        BUNDLE_ID: "sefra.kr"
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install CocoaPods dependencies
+        script: |
+          cd Sefra
+          pod install --repo-update
+      - name: Set up keychain
+        script: |
+          keychain initialize
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_DEVELOPMENT \
+            --create
+      - name: Add certificates to keychain
+        script: |
+          keychain add-certificates
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+      - name: Build ipa for development
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --config "Debug" \
+            --export-options-plist "Sefra/exportOptions.plist"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - zanoone2@gmail.com
+        notify:
+          success: true
+          failure: true

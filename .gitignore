@@ -1,53 +1,81 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcworkspace/contents.xcworkspacedata
+*.xcworkspace/*
+!*.xcworkspace/xcshareddata/
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad
+
+# CocoaPods
+Pods/
+Podfile.lock
+*.podspec
+
+# Build results
+DerivedData/
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.app
+
+# Swift Package Manager
 .swiftpm/
-migrate_working_dir/
+.build/
+Packages/
+Package.pins
+Package.resolved
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
+# Firebase (보안을 위해 제외할 경우)
+# GoogleService-Info.plist
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
+# Thumbnails
+Thumbs.db
 
-# Symbolication related
-app.*.symbols
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
 
-# Obfuscation related
-app.*.map.json
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Codemagic
+codemagic.yaml.enc
 
-# Firebase configuration files (sensitive)
-# GoogleService-Info.plist  # Committing for CI/CD
-google-services.json
+# Provisioning Profiles
+*.mobileprovision
+*.provisionprofile
 
-# Apple Developer authentication keys (sensitive)
+# Certificates
+*.p12
+*.cer
+*.certSigningRequest
 *.p8
-AuthKey_*.p8
+
+# Archive
+*.xcarchive
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output

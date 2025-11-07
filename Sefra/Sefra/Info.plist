@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>ko_KR</string>
+	<key>CFBundleDisplayName</key>
+	<string>Sefra</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict/>
+	</dict>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+
+	<!-- 인터넷 접근 권한 -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
+	</dict>
+
+	<!-- 생체인증 사용 이유 설명 (Face ID) -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>패스키 인증을 위해 Face ID를 사용합니다</string>
+
+	<!-- 카메라 권한 (본인인증 시 필요할 수 있음) -->
+	<key>NSCameraUsageDescription</key>
+	<string>본인인증을 위해 카메라 접근이 필요합니다</string>
+
+	<!-- 사진 라이브러리 권한 (프로필 사진 등) -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>사진을 업로드하기 위해 접근이 필요합니다</string>
+
+	<!-- 추가 권한 -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Sefra uses tracking to provide personalized services and improve user experience</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Sefra needs local network access to communicate with nearby devices</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+
+	<!-- URL Schemes (본인인증 등에서 앱으로 복귀) -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>sefra.kr</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>sefra</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- Universal Links / Associated Domains (Xcode에서 Signing & Capabilities에서 추가 필요) -->
+	<!--
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:sefra.kr</string>
+	</array>
+	-->
+
+	<!-- 백그라운드 모드 (푸시 알림) -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+
+	<!-- 상태바 스타일 -->
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleDefault</string>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+
+	<!-- Firebase 동적 링크 지원 (필요시) -->
+	<key>FirebaseDynamicLinksCustomDomains</key>
+	<array>
+		<string>https://sefra.kr</string>
+	</array>
+</dict>
+</plist>
