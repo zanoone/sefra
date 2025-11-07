@@ -46,8 +46,11 @@ workflows:
       - name: Flutter analyze
         script: |
           flutter analyze
+      - name: Build iOS release
+        script: |
+          flutter build ipa --release
     artifacts:
-      - build/ios/iphoneos/*.app
+      - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - flutter_drive.log
     publishing:
