@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+// import 'package:flutter_inappwebview/flutter_inappwebview.dart'; // DISABLED FOR TESTING v1.0.0+26
 import 'package:local_auth/local_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -63,7 +63,7 @@ class WebViewScreen extends StatefulWidget {
 }
 
 class _WebViewScreenState extends State<WebViewScreen> {
-  InAppWebViewController? webViewController;
+  // InAppWebViewController? webViewController; // DISABLED FOR TESTING v1.0.0+26
   final LocalAuthentication auth = LocalAuthentication();
   String deviceId = '';
   String fcmToken = '';
@@ -231,114 +231,95 @@ class _WebViewScreenState extends State<WebViewScreen> {
       );
     }
 
+    // Simple test screen without WebView (v1.0.0+26 testing)
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Sefra Test (v1.0.0+26)'),
+        backgroundColor: Colors.blue,
+      ),
       body: SafeArea(
-        child: InAppWebView(
-          initialUrlRequest: URLRequest(
-            url: WebUri('https://sefra.kr?device=$deviceId'),
-          ),
-          initialSettings: InAppWebViewSettings(
-            javaScriptEnabled: true,
-            cacheEnabled: true,
-            useOnDownloadStart: true,
-            allowsInlineMediaPlayback: true,
-            mediaPlaybackRequiresUserGesture: false,
-            // 키보드 설정 (한글 입력 지원)
-            suppressesIncrementalRendering: false,
-          ),
-          onWebViewCreated: (controller) {
-            webViewController = controller;
-
-            // Register JavaScript handlers
-            controller.addJavaScriptHandler(
-              handlerName: 'authenticate',
-              callback: (args) async {
-                final result = await _authenticate();
-                return result;
-              },
-            );
-
-            controller.addJavaScriptHandler(
-              handlerName: 'getFCMToken',
-              callback: (args) async {
-                return fcmToken;
-              },
-            );
-
-            controller.addJavaScriptHandler(
-              handlerName: 'isAvailable',
-              callback: (args) async {
-                final canCheckBiometrics = await auth.canCheckBiometrics;
-                final isDeviceSupported = await auth.isDeviceSupported();
-                return canCheckBiometrics && isDeviceSupported;
-              },
-            );
-
-            controller.addJavaScriptHandler(
-              handlerName: 'getDeviceId',
-              callback: (args) async {
-                return deviceId;
-              },
-            );
-          },
-          onLoadStop: (controller, url) async {
-            // Inject JavaScript bridge
-            await controller.evaluateJavascript(source: """
-              // Biometric authentication bridge
-              window.AndroidBiometric = {
-                authenticate: async function() {
-                  try {
-                    const result = await window.flutter_inappwebview.callHandler('authenticate');
-                    if (result.success && window.onBiometricLoginSuccess) {
-                      window.onBiometricLoginSuccess(result);
-                    }
-                    return result;
-                  } catch (e) {
-                    console.error('Biometric auth error:', e);
-                    return { success: false, error: e.toString() };
-                  }
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'WebView Disabled for Testing',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Testing if flutter_inappwebview was causing the crash.',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 30),
+              const Text(
+                'App Information:',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _buildInfoRow('Version', '1.0.0+26'),
+              _buildInfoRow('Device ID', deviceId.isEmpty ? 'Loading...' : deviceId),
+              _buildInfoRow('FCM Token', fcmToken.isEmpty ? 'Not available' : 'Obtained'),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  final result = await _authenticate();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        result['success']
+                          ? 'Authentication successful!'
+                          : 'Authentication failed: ${result['error']}',
+                      ),
+                    ),
+                  );
                 },
-                isAvailable: async function() {
-                  return await window.flutter_inappwebview.callHandler('isAvailable');
-                }
-              };
-
-              // FCM functions
-              window.getFCMToken = async function() {
-                return await window.flutter_inappwebview.callHandler('getFCMToken');
-              };
-
-              window.sendFCMTokenToServer = async function() {
-                try {
-                  const token = await window.getFCMToken();
-                  if (typeof onB4xDataUpdated === 'function') {
-                    onB4xDataUpdated({ fcmToken: token });
-                    return true;
-                  }
-                  return false;
-                } catch (e) {
-                  console.error('FCM token error:', e);
-                  return false;
-                }
-              };
-
-              // Device ID function
-              window.getDeviceId = async function() {
-                return await window.flutter_inappwebview.callHandler('getDeviceId');
-              };
-
-              console.log('✅ Sefra Flutter WebView Bridge Ready');
-              console.log('✅ Device ID: $deviceId');
-            """);
-          },
-          onConsoleMessage: (controller, consoleMessage) {
-            // Log console messages for debugging
-            print('JS Console: ${consoleMessage.message}');
-          },
-          onLoadError: (controller, url, code, message) {
-            print('Load error: $message');
-          },
+                child: const Text('Test Biometric Authentication'),
+              ),
+              const SizedBox(height: 30),
+              const Text(
+                'If this screen displays correctly on the real device, then flutter_inappwebview was the cause of the crash.',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontFamily: 'monospace'),
+            ),
+          ),
+        ],
       ),
     );
   }
