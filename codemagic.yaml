@@ -46,7 +46,11 @@ workflows:
       - name: Flutter analyze
         script: |
           flutter analyze
-      - name: Build iOS release with Xcode (skip Flutter build)
+      - name: Generate Flutter build files
+        script: |
+          # Generate Generated.xcconfig and other required files
+          flutter build ios --release --no-codesign || true
+      - name: Build iOS release with Xcode
         script: |
           cd ios
           xcodebuild archive \
