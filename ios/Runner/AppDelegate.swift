@@ -1,6 +1,6 @@
 import Flutter
 import UIKit
-import Firebase
+// import Firebase // DISABLED FOR TESTING v1.0.0+26
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -8,8 +8,8 @@ import Firebase
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // Initialize Firebase
-    FirebaseApp.configure()
+    // Initialize Firebase - DISABLED FOR TESTING v1.0.0+26
+    // FirebaseApp.configure()
 
     // Register plugins before calling super to avoid QoS warning
     GeneratedPluginRegistrant.register(with: self)

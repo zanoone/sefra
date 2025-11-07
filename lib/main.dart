@@ -1,39 +1,36 @@
 import 'package:flutter/material.dart';
 // import 'package:flutter_inappwebview/flutter_inappwebview.dart'; // DISABLED FOR TESTING v1.0.0+26
 import 'package:local_auth/local_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+// import 'package:firebase_core/firebase_core.dart'; // DISABLED FOR TESTING v1.0.0+26
+// import 'package:firebase_messaging/firebase_messaging.dart'; // DISABLED FOR TESTING v1.0.0+26
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
-import 'firebase_options.dart';
+// import 'firebase_options.dart'; // DISABLED FOR TESTING v1.0.0+26
 
 // Background message handler (must be top-level function)
 // Firebase is already initialized in native iOS code (AppDelegate.swift)
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // No need to initialize Firebase here - already done in native code
-  print('📬 Background message: ${message.notification?.title}');
-}
+// @pragma('vm:entry-point')
+// Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+//   // No need to initialize Firebase here - already done in native code
+//   print('📬 Background message: ${message.notification?.title}');
+// }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Firebase is already initialized in native iOS code (AppDelegate.swift)
-  // This ensures compatibility with background message handlers
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    print('✅ Firebase initialized successfully');
-
-    // Register background message handler
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    print('✅ Background message handler registered');
-  } catch (e) {
-    print('❌ Firebase initialization error: $e');
-    print('⚠️ App will continue without Firebase features');
-  }
+  // Firebase DISABLED FOR TESTING v1.0.0+26
+  // try {
+  //   await Firebase.initializeApp(
+  //     options: DefaultFirebaseOptions.currentPlatform,
+  //   );
+  //   print('✅ Firebase initialized successfully');
+  //   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  //   print('✅ Background message handler registered');
+  // } catch (e) {
+  //   print('❌ Firebase initialization error: $e');
+  //   print('⚠️ App will continue without Firebase features');
+  // }
 
   runApp(const SefraApp());
 }
@@ -77,7 +74,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   Future<void> _initialize() async {
     await _getDeviceId();
-    await _setupFCM();
+    // await _setupFCM(); // DISABLED FOR TESTING v1.0.0+26
     setState(() {
       isInitialized = true;
     });
@@ -100,61 +97,45 @@ class _WebViewScreenState extends State<WebViewScreen> {
     }
   }
 
-  // Setup Firebase Cloud Messaging
-  Future<void> _setupFCM() async {
-    try {
-      // Request notification permission (iOS)
-      NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        print('✅ User granted notification permission');
-      } else {
-        print('⚠️ Notification permission denied');
-      }
-
-      // Get FCM token
-      fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
-      print('✅ FCM Token: ${fcmToken.isNotEmpty ? "Obtained" : "Empty"}');
-
-      // Save token
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('fcm_token', fcmToken);
-
-      // Listen for token refresh
-      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
-        fcmToken = newToken;
-        prefs.setString('fcm_token', newToken);
-        print('🔄 FCM Token refreshed');
-      });
-
-      // Handle foreground messages
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        print('📬 Foreground message: ${message.notification?.title}');
-
-        // Show notification to user
-        if (message.notification != null) {
-          _showNotificationDialog(
-            message.notification!.title ?? 'Notification',
-            message.notification!.body ?? '',
-          );
-        }
-      });
-
-      // Handle notification tap (app opened from background)
-      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        print('👆 Notification tapped: ${message.data}');
-      });
-
-      print('✅ FCM setup completed successfully');
-    } catch (e) {
-      print('❌ Error setting up FCM: $e');
-      // Continue without FCM if setup fails
-    }
-  }
+  // Setup Firebase Cloud Messaging - DISABLED FOR TESTING v1.0.0+26
+  // Future<void> _setupFCM() async {
+  //   try {
+  //     NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
+  //       alert: true,
+  //       badge: true,
+  //       sound: true,
+  //     );
+  //     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+  //       print('✅ User granted notification permission');
+  //     } else {
+  //       print('⚠️ Notification permission denied');
+  //     }
+  //     fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
+  //     print('✅ FCM Token: ${fcmToken.isNotEmpty ? "Obtained" : "Empty"}');
+  //     final prefs = await SharedPreferences.getInstance();
+  //     await prefs.setString('fcm_token', fcmToken);
+  //     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+  //       fcmToken = newToken;
+  //       prefs.setString('fcm_token', newToken);
+  //       print('🔄 FCM Token refreshed');
+  //     });
+  //     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+  //       print('📬 Foreground message: ${message.notification?.title}');
+  //       if (message.notification != null) {
+  //         _showNotificationDialog(
+  //           message.notification!.title ?? 'Notification',
+  //           message.notification!.body ?? '',
+  //         );
+  //       }
+  //     });
+  //     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+  //       print('👆 Notification tapped: ${message.data}');
+  //     });
+  //     print('✅ FCM setup completed successfully');
+  //   } catch (e) {
+  //     print('❌ Error setting up FCM: $e');
+  //   }
+  // }
 
   // Show notification dialog
   void _showNotificationDialog(String title, String body) {
