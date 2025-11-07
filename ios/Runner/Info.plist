@@ -59,6 +59,17 @@
 		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
+	</dict>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Sefra uses tracking to provide personalized services and improve user experience</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Sefra needs local network access to communicate with nearby devices</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>
