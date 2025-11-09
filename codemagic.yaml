@@ -67,8 +67,6 @@ workflows:
           failure: true
 
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        # Integration에서 자동으로 인증 정보 가져옴
         submit_to_testflight: true
         submit_to_app_store: false
