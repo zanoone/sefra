@@ -160,16 +160,28 @@ extension ViewController: WKNavigationDelegate {
 
             console.log('✅ FCM 함수 준비됨: window.sendFCMTokenToServer(), window.getFCMToken()');
 
-            // onB4xDataUpdated 함수가 있으면 자동 전송
-            if (typeof onB4xDataUpdated === 'function') {
-                console.log('✅ onB4xDataUpdated 함수 발견됨');
-                setTimeout(function() {
-                    console.log('🔄 FCM 토큰 자동 전송 시도...');
-                    window.sendFCMTokenToServer();
-                }, 1000);
-            } else {
-                console.log('⚠️ onB4xDataUpdated 함수가 아직 정의되지 않음');
-            }
+            // 로그인 성공 후 onB4xDataUpdated 함수가 준비될 때까지 대기
+            var checkCount = 0;
+            var maxChecks = 60; // 최대 60초 대기 (60회 * 1초)
+            var checkInterval = setInterval(function() {
+                checkCount++;
+
+                if (typeof onB4xDataUpdated === 'function') {
+                    console.log('✅ onB4xDataUpdated 함수 발견됨 (로그인 완료)');
+                    clearInterval(checkInterval);
+
+                    // FCM 토큰 자동 전송
+                    setTimeout(function() {
+                        console.log('🔄 FCM 토큰 자동 전송 시도...');
+                        window.sendFCMTokenToServer();
+                    }, 500);
+                } else if (checkCount >= maxChecks) {
+                    console.log('⚠️ onB4xDataUpdated 함수를 찾지 못함 (타임아웃)');
+                    clearInterval(checkInterval);
+                } else if (checkCount % 10 === 0) {
+                    console.log('⏳ onB4xDataUpdated 함수 대기 중... (' + checkCount + '초)');
+                }
+            }, 1000);
         })();
         """
 
