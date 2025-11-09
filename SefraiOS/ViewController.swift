@@ -7,7 +7,10 @@ class ViewController: UIViewController {
 
     private var webView: WKWebView!
     private var deviceId: String {
-        return UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+        // UUID에서 하이픈 제거하고 소문자로 변환, 앞 16자리만 사용 (안드로이드와 동일한 형식)
+        let uuid = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+        let cleanUUID = uuid.replacingOccurrences(of: "-", with: "").lowercased()
+        return String(cleanUUID.prefix(16))
     }
 
     override func viewDidLoad() {
@@ -269,12 +272,6 @@ extension ViewController: WKScriptMessageHandler {
         case "getFCMToken":
             sendFCMTokenToWeb()
 
-        case "sendTokenToServer":
-            if let token = body["token"] as? String,
-               let serverUrl = body["serverUrl"] as? String {
-                sendTokenToServer(token: token, serverUrl: serverUrl)
-            }
-
         default:
             print("알 수 없는 액션: \(action)")
         }
@@ -464,44 +461,4 @@ extension ViewController: WKScriptMessageHandler {
         webView.evaluateJavaScript(javascript, completionHandler: nil)
     }
 
-    private func sendTokenToServer(token: String, serverUrl: String) {
-        print("FCM 토큰을 서버로 전송: \(serverUrl)")
-
-        guard let url = URL(string: serverUrl) else {
-            print("❌ 잘못된 서버 URL")
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let jsonData: [String: String] = [
-            "fcm_token": token,
-            "device_id": deviceId
-        ]
-
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: jsonData, options: [])
-
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                if let error = error {
-                    print("❌ 서버 전송 실패: \(error.localizedDescription)")
-                    return
-                }
-
-                if let httpResponse = response as? HTTPURLResponse {
-                    print("서버 응답 코드: \(httpResponse.statusCode)")
-
-                    if let data = data, let responseString = String(data: data, encoding: .utf8) {
-                        print("서버 응답: \(responseString)")
-                    }
-                }
-            }
-
-            task.resume()
-        } catch {
-            print("❌ JSON 직렬화 실패: \(error.localizedDescription)")
-        }
-    }
 }
