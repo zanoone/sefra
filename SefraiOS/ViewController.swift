@@ -93,30 +93,15 @@ class ViewController: UIViewController {
         guard let token = notification.object as? String else { return }
         print("========================================")
         print("FCM 토큰 업데이트됨: \(token)")
-        print("웹으로 즉시 전송 시도...")
+        print("UserDefaults에 저장 (로그인 후 자동 전송됨)")
         print("========================================")
 
-        // UserDefaults에 저장 (백업)
+        // UserDefaults에 저장 (로그인 후 JavaScript에서 읽어서 전송)
         UserDefaults.standard.set(token, forKey: "fcm_token")
         UserDefaults.standard.synchronize()
 
-        // 웹뷰가 로드되어 있으면 즉시 전송
-        let javascript = """
-        (function() {
-            var fcmToken = '\(token)';
-            console.log('🔄 FCM 토큰 업데이트 알림 받음:', fcmToken.substring(0, 30) + '...');
-
-            // 즉시 전송 시도
-            if (typeof onB4xDataUpdated === 'function') {
-                onB4xDataUpdated({ fcmToken: fcmToken });
-                console.log('✅ onB4xDataUpdated 즉시 호출 성공!');
-            } else {
-                console.log('⚠️ onB4xDataUpdated 아직 준비 안 됨, 나중에 자동 전송 예정');
-            }
-        })();
-        """
-
-        webView?.evaluateJavaScript(javascript, completionHandler: nil)
+        // 로그인 완료 후 onB4xDataUpdated가 준비되면 자동 전송됨
+        // (ViewController의 didFinish에서 처리)
     }
 
     @objc private func loadURLFromNotification(_ notification: Notification) {
