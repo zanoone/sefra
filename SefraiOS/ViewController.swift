@@ -13,6 +13,9 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // 배경을 흰색으로 설정 (상단바 투명 효과)
+        view.backgroundColor = .white
+
         setupWebView()
 
         // FCM 토큰 업데이트 알림 수신
@@ -23,6 +26,14 @@ class ViewController: UIViewController {
 
         // 초기 URL 로드
         loadInitialURL()
+    }
+
+    override var preferredStatusBarStyle: UIStatusBarStyle {
+        return .darkContent  // 흰색 배경에는 검은색 아이콘
+    }
+
+    override var prefersStatusBarHidden: Bool {
+        return false  // 상태바 표시
     }
 
     private func setupWebView() {
@@ -45,6 +56,9 @@ class ViewController: UIViewController {
         webView.uiDelegate = self
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.allowsBackForwardNavigationGestures = true
+        webView.isOpaque = false
+        webView.backgroundColor = .white
+        webView.scrollView.backgroundColor = .white
 
         // 쿠키 허용
         if #available(iOS 14.0, *) {
@@ -53,10 +67,10 @@ class ViewController: UIViewController {
 
         view.addSubview(webView)
 
-        // Auto Layout
+        // Auto Layout - 상단바 아래에서 시작
         webView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: view.topAnchor),
+            webView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
@@ -109,8 +123,26 @@ extension ViewController: WKNavigationDelegate {
                 input.setAttribute('autocomplete', 'off');
             });
 
+            // 안드로이드 호환 생체인증 브릿지
+            window.AndroidBiometric = {
+                authenticate: function() {
+                    console.log('🔐 생체인증 호출: authenticate()');
+                    window.webkit.messageHandlers.AndroidBiometric.postMessage({
+                        action: 'authenticate'
+                    });
+                },
+                isAvailable: function() {
+                    console.log('🔍 생체인증 사용 가능 확인');
+                    window.webkit.messageHandlers.AndroidBiometric.postMessage({
+                        action: 'isAvailable'
+                    });
+                    return true;
+                }
+            };
+
             // 생체인증 사용 가능 여부
-            console.log('Native biometric available: true');
+            console.log('✅ AndroidBiometric 브릿지 준비됨');
+            console.log('✅ Native biometric available: true');
 
             // FCM 토큰 전송 함수
             window.sendFCMTokenToServer = function() {

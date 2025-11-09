@@ -31,6 +31,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
         // 윈도우 설정
         window = UIWindow(frame: UIScreen.main.bounds)
+        window?.backgroundColor = .white  // 상단바를 투명하게 만들기 위해 배경을 흰색으로 설정
         let viewController = ViewController()
         let navigationController = UINavigationController(rootViewController: viewController)
         navigationController.isNavigationBarHidden = true
