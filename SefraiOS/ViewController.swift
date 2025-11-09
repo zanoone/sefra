@@ -6,6 +6,10 @@ import FirebaseMessaging
 class ViewController: UIViewController {
 
     private var webView: WKWebView!
+    private var debugLogView: UITextView!
+    private var debugLogs: [String] = []
+    private var isDebugViewVisible = true
+
     private var deviceId: String {
         // 전체 UUID 사용 (하이픈 포함)
         return UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
@@ -18,6 +22,7 @@ class ViewController: UIViewController {
         view.backgroundColor = .white
 
         setupWebView()
+        setupDebugLogView()
 
         // FCM 토큰 업데이트 알림 수신
         NotificationCenter.default.addObserver(self, selector: #selector(fcmTokenUpdated(_:)), name: NSNotification.Name("FCMTokenUpdated"), object: nil)
@@ -27,6 +32,9 @@ class ViewController: UIViewController {
 
         // 초기 URL 로드
         loadInitialURL()
+
+        addDebugLog("🚀 앱 시작")
+        addDebugLog("📱 Device ID: \(deviceId)")
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -87,15 +95,13 @@ class ViewController: UIViewController {
         guard let url = URL(string: "https://sefra.kr?device=\(deviceId)") else { return }
         let request = URLRequest(url: url)
         webView.load(request)
-        print("초기 URL 로드: \(url.absoluteString)")
+        addDebugLog("🌐 초기 URL 로드: \(url.absoluteString)")
     }
 
     @objc private func fcmTokenUpdated(_ notification: Notification) {
         guard let token = notification.object as? String else { return }
-        print("========================================")
-        print("FCM 토큰 업데이트됨: \(token.prefix(20))...")
-        print("즉시 웹으로 전송 시도...")
-        print("========================================")
+        addDebugLog("🔥 FCM 토큰 업데이트: \(token.prefix(20))...")
+        addDebugLog("📤 즉시 웹으로 전송 시도")
 
         // UserDefaults에 저장 (이미 AppDelegate에서 저장되지만 이중 보장)
         UserDefaults.standard.set(token, forKey: "fcm_token")
@@ -123,10 +129,8 @@ class ViewController: UIViewController {
 extension ViewController: WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        print("========================================")
-        print("📄 페이지 로드 완료: \(webView.url?.absoluteString ?? "")")
-        print("✅ deviceId: \(deviceId)")
-        print("========================================")
+        addDebugLog("📄 페이지 로드 완료: \(webView.url?.absoluteString ?? "")")
+        addDebugLog("✅ deviceId: \(deviceId)")
 
         // JavaScript 주입 (안드로이드와 완전히 동일한 로직!)
         let javascript = """
@@ -277,7 +281,7 @@ extension ViewController: WKScriptMessageHandler {
             return
         }
 
-        print("JavaScript 메시지 수신: \(action)")
+        addDebugLog("📨 JavaScript 메시지: \(action)")
 
         switch action {
         case "authenticate":
@@ -291,7 +295,7 @@ extension ViewController: WKScriptMessageHandler {
             sendFCMTokenToWeb()
 
         default:
-            print("알 수 없는 액션: \(action)")
+            addDebugLog("⚠️ 알 수 없는 액션: \(action)")
         }
     }
 
@@ -449,12 +453,12 @@ extension ViewController: WKScriptMessageHandler {
         let token = UserDefaults.standard.string(forKey: "fcm_token") ?? ""
 
         if token.isEmpty {
-            print("⚠️ FCM 토큰이 아직 없음")
+            addDebugLog("⚠️ FCM 토큰이 아직 없음")
             return
         }
 
-        print("FCM 토큰 웹으로 전송: \(token.prefix(20))...")
-        print("디바이스 ID: \(deviceId)")
+        addDebugLog("📤 FCM 토큰 전송: \(token.prefix(20))...")
+        addDebugLog("📱 Device ID: \(deviceId)")
 
         let javascript = """
         (function() {
@@ -484,6 +488,61 @@ extension ViewController: WKScriptMessageHandler {
         """
 
         webView.evaluateJavaScript(javascript, completionHandler: nil)
+    }
+
+    // MARK: - Debug Log View
+    private func setupDebugLogView() {
+        debugLogView = UITextView()
+        debugLogView.backgroundColor = UIColor.black.withAlphaComponent(0.8)
+        debugLogView.textColor = .white
+        debugLogView.font = UIFont.monospacedSystemFont(ofSize: 10, weight: .regular)
+        debugLogView.isEditable = false
+        debugLogView.isScrollEnabled = true
+        debugLogView.layer.cornerRadius = 8
+        debugLogView.layer.maskedToBounds = true
+
+        view.addSubview(debugLogView)
+
+        // Auto Layout
+        debugLogView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            debugLogView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+            debugLogView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+            debugLogView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+            debugLogView.heightAnchor.constraint(equalToConstant: 200)
+        ])
+
+        // 더블탭으로 토글
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(toggleDebugView))
+        doubleTap.numberOfTapsRequired = 2
+        debugLogView.addGestureRecognizer(doubleTap)
+        debugLogView.isUserInteractionEnabled = true
+    }
+
+    @objc private func toggleDebugView() {
+        isDebugViewVisible.toggle()
+        UIView.animate(withDuration: 0.3) {
+            self.debugLogView.alpha = self.isDebugViewVisible ? 1.0 : 0.2
+        }
+    }
+
+    private func addDebugLog(_ message: String) {
+        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
+        let logMessage = "[\(timestamp)] \(message)"
+
+        debugLogs.append(logMessage)
+        if debugLogs.count > 100 {
+            debugLogs.removeFirst()
+        }
+
+        DispatchQueue.main.async {
+            self.debugLogView.text = self.debugLogs.joined(separator: "\n")
+            let bottom = NSRange(location: self.debugLogView.text.count - 1, length: 1)
+            self.debugLogView.scrollRangeToVisible(bottom)
+        }
+
+        // 콘솔에도 출력
+        print(logMessage)
     }
 
 }
