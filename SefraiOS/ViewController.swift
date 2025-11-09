@@ -22,7 +22,7 @@ class ViewController: UIViewController {
         view.backgroundColor = .white
 
         setupWebView()
-        setupDebugLogView()
+        // setupDebugLogView()
 
         // FCM 토큰 업데이트 알림 수신
         NotificationCenter.default.addObserver(self, selector: #selector(fcmTokenUpdated(_:)), name: NSNotification.Name("FCMTokenUpdated"), object: nil)
@@ -31,13 +31,13 @@ class ViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(loadURLFromNotification(_:)), name: NSNotification.Name("LoadURLFromNotification"), object: nil)
 
         // AppDelegate 로그 알림 수신
-        NotificationCenter.default.addObserver(self, selector: #selector(appDelegateLogReceived(_:)), name: NSNotification.Name("AppDelegateLog"), object: nil)
+        // NotificationCenter.default.addObserver(self, selector: #selector(appDelegateLogReceived(_:)), name: NSNotification.Name("AppDelegateLog"), object: nil)
 
         // 초기 URL 로드
         loadInitialURL()
 
-        addDebugLog("🚀 앱 시작")
-        addDebugLog("📱 Device ID: \(deviceId)")
+        // addDebugLog("🚀 앱 시작")
+        // addDebugLog("📱 Device ID: \(deviceId)")
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -98,13 +98,13 @@ class ViewController: UIViewController {
         guard let url = URL(string: "https://sefra.kr?device=\(deviceId)") else { return }
         let request = URLRequest(url: url)
         webView.load(request)
-        addDebugLog("🌐 초기 URL 로드: \(url.absoluteString)")
+        // addDebugLog("🌐 초기 URL 로드: \(url.absoluteString)")
     }
 
     @objc private func fcmTokenUpdated(_ notification: Notification) {
         guard let token = notification.object as? String else { return }
-        addDebugLog("🔥 FCM 토큰 업데이트: \(token.prefix(20))...")
-        addDebugLog("📤 즉시 웹으로 전송 시도")
+        // addDebugLog("🔥 FCM 토큰 업데이트: \(token.prefix(20))...")
+        // addDebugLog("📤 즉시 웹으로 전송 시도")
 
         // UserDefaults에 저장 (이미 AppDelegate에서 저장되지만 이중 보장)
         UserDefaults.standard.set(token, forKey: "fcm_token")
@@ -125,7 +125,7 @@ class ViewController: UIViewController {
 
     @objc private func appDelegateLogReceived(_ notification: Notification) {
         guard let logMessage = notification.object as? String else { return }
-        addDebugLog(logMessage)
+        // addDebugLog(logMessage)
     }
 
     deinit {
@@ -137,8 +137,8 @@ class ViewController: UIViewController {
 extension ViewController: WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        addDebugLog("📄 페이지 로드 완료: \(webView.url?.absoluteString ?? "")")
-        addDebugLog("✅ deviceId: \(deviceId)")
+        // addDebugLog("📄 페이지 로드 완료: \(webView.url?.absoluteString ?? "")")
+        // addDebugLog("✅ deviceId: \(deviceId)")
 
         // JavaScript 주입 (안드로이드와 완전히 동일한 로직!)
         let javascript = """
@@ -289,7 +289,7 @@ extension ViewController: WKScriptMessageHandler {
             return
         }
 
-        addDebugLog("📨 JavaScript 메시지: \(action)")
+        // addDebugLog("📨 JavaScript 메시지: \(action)")
 
         switch action {
         case "authenticate":
@@ -461,12 +461,12 @@ extension ViewController: WKScriptMessageHandler {
         let token = UserDefaults.standard.string(forKey: "fcm_token") ?? ""
 
         if token.isEmpty {
-            addDebugLog("⚠️ FCM 토큰이 아직 없음")
+            // addDebugLog("⚠️ FCM 토큰이 아직 없음")
             return
         }
 
-        addDebugLog("📤 FCM 토큰 전송: \(token.prefix(20))...")
-        addDebugLog("📱 Device ID: \(deviceId)")
+        // addDebugLog("📤 FCM 토큰 전송: \(token.prefix(20))...")
+        // addDebugLog("📱 Device ID: \(deviceId)")
 
         let javascript = """
         (function() {
