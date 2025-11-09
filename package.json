@@ -1,0 +1,24 @@
+{
+  "name": "sefraios",
+  "version": "1.0.0",
+  "description": "Android 앱을 iOS 네이티브 앱으로 변환한 프로젝트입니다.",
+  "main": "firebase-messaging.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zanoone/sefra.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/zanoone/sefra/issues"
+  },
+  "homepage": "https://github.com/zanoone/sefra#readme",
+  "dependencies": {
+    "firebase-admin": "^13.6.0"
+  }
+}

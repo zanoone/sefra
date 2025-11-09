@@ -445,18 +445,37 @@ extension ViewController: WKScriptMessageHandler {
 
     private func sendFCMTokenToWeb() {
         let token = UserDefaults.standard.string(forKey: "fcm_token") ?? ""
-        print("FCM 토큰 웹으로 전송: \(token)")
+        print("========================================")
+        print("FCM 토큰 웹으로 전송:")
+        print("  토큰: \(token.prefix(30))...")
+        print("  Device ID: \(deviceId)")
+        print("  Platform: iOS")
+        print("========================================")
 
         let javascript = """
         (function() {
             var fcmToken = '\(token)';
+            var deviceId = '\(deviceId)';
+            var platform = 'ios';
+
             if (fcmToken && fcmToken.length > 0) {
-                console.log('FCM Token available:', fcmToken.substring(0, 30) + '...');
+                console.log('========================================');
+                console.log('📤 FCM Token Data:');
+                console.log('  토큰:', fcmToken.substring(0, 30) + '...');
+                console.log('  Device ID:', deviceId);
+                console.log('  Platform:', platform);
+                console.log('========================================');
+
                 if (typeof onB4xDataUpdated === 'function') {
-                    onB4xDataUpdated({ fcmToken: fcmToken });
-                    console.log('✅ onB4xDataUpdated 함수 호출됨 (fcmToken 전달)');
+                    onB4xDataUpdated({
+                        fcmToken: fcmToken,
+                        deviceId: deviceId,
+                        platform: platform
+                    });
+                    console.log('✅ onB4xDataUpdated 함수 호출됨 (모든 파라미터 전달)');
                 } else {
                     console.warn('⚠️ onB4xDataUpdated 함수가 정의되지 않음');
+                    console.warn('로그인이 완료되지 않았거나, 웹 페이지가 아직 준비되지 않았습니다.');
                 }
             } else {
                 console.warn('⚠️ FCM 토큰이 아직 준비되지 않음');

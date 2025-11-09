@@ -92,3 +92,5 @@ iOSInjectionProject/
 # Firebase
 # Uncomment this line if you want to keep GoogleService-Info.plist private
 # GoogleService-Info.plist
+node_modules/
+package-lock.json
