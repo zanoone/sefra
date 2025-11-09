@@ -535,10 +535,13 @@ extension ViewController: WKScriptMessageHandler {
             debugLogs.removeFirst()
         }
 
-        DispatchQueue.main.async {
-            self.debugLogView.text = self.debugLogs.joined(separator: "\n")
-            let bottom = NSRange(location: self.debugLogView.text.count - 1, length: 1)
-            self.debugLogView.scrollRangeToVisible(bottom)
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, let debugLogView = self.debugLogView else { return }
+            debugLogView.text = self.debugLogs.joined(separator: "\n")
+            if debugLogView.text.count > 0 {
+                let bottom = NSRange(location: debugLogView.text.count - 1, length: 1)
+                debugLogView.scrollRangeToVisible(bottom)
+            }
         }
 
         // 콘솔에도 출력
