@@ -16,6 +16,58 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // FCM 델리게이트 설정
         Messaging.messaging().delegate = self
 
+        // 🔥 GoogleService-Info.plist 앱 ID가 바뀌었으므로 FCM 토큰 강제 삭제 및 재발급
+        let currentAppID = "1:490906882581:ios:cf31c2772398ca5e66741c"
+        let savedAppID = UserDefaults.standard.string(forKey: "google_app_id")
+
+        if savedAppID != currentAppID {
+            print("🔄 GoogleService-Info.plist 앱 ID가 변경됨!")
+            print("   기존: \(savedAppID ?? "없음")")
+            print("   새로: \(currentAppID)")
+            print("   → FCM 토큰 삭제 및 재발급 진행...")
+
+            // FCM 토큰 삭제
+            Messaging.messaging().deleteToken { error in
+                if let error = error {
+                    print("❌ FCM 토큰 삭제 실패: \(error.localizedDescription)")
+                } else {
+                    print("✅ FCM 토큰 삭제 성공!")
+
+                    // 새 앱 ID 저장
+                    UserDefaults.standard.set(currentAppID, forKey: "google_app_id")
+                    UserDefaults.standard.synchronize()
+
+                    // 토큰 즉시 재발급 요청
+                    Messaging.messaging().token { token, error in
+                        if let error = error {
+                            print("❌ 새 FCM 토큰 발급 실패: \(error.localizedDescription)")
+                        } else if let token = token {
+                            print("✅ 새 FCM 토큰 발급 성공!")
+                            print("🆕 새 토큰: \(token)")
+
+                            // UserDefaults에 저장
+                            UserDefaults.standard.set(token, forKey: "fcm_token")
+                            UserDefaults.standard.synchronize()
+
+                            // general 토픽 구독
+                            Messaging.messaging().subscribe(toTopic: "general") { error in
+                                if let error = error {
+                                    print("❌ general 토픽 구독 실패: \(error.localizedDescription)")
+                                } else {
+                                    print("✅ general 토픽 구독 성공")
+                                }
+                            }
+
+                            // 웹뷰에 알림
+                            NotificationCenter.default.post(name: NSNotification.Name("FCMTokenUpdated"), object: token)
+                        }
+                    }
+                }
+            }
+        } else {
+            print("✅ GoogleService-Info.plist 앱 ID 일치: \(currentAppID)")
+        }
+
         // 알림 권한 요청
         UNUserNotificationCenter.current().delegate = self
         let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
