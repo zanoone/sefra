@@ -499,7 +499,7 @@ extension ViewController: WKScriptMessageHandler {
         debugLogView.isEditable = false
         debugLogView.isScrollEnabled = true
         debugLogView.layer.cornerRadius = 8
-        debugLogView.layer.maskedToBounds = true
+        debugLogView.layer.masksToBounds = true
 
         view.addSubview(debugLogView)
 
