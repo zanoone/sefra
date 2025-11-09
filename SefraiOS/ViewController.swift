@@ -127,7 +127,7 @@ extension ViewController: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         print("페이지 로드 완료: \(webView.url?.absoluteString ?? "")")
 
-        // FCM 토큰 가져오기
+        // Firebase에서 제공한 FCM 토큰 가져오기 (AppDelegate에서 저장됨)
         let fcmToken = UserDefaults.standard.string(forKey: "fcm_token") ?? ""
 
         // JavaScript 주입
@@ -139,9 +139,9 @@ extension ViewController: WKNavigationDelegate {
                 input.setAttribute('autocomplete', 'off');
             });
 
-            // FCM 토큰과 디바이스 ID 미리 설정 (안드로이드와 동일)
-            var fcmToken = '\(fcmToken)';
-            var deviceId = '\(deviceId)';
+            // Firebase에서 제공한 FCM 토큰과 디바이스 ID 설정
+            var fcmToken = '\(fcmToken)';  // Firebase Messaging에서 발급받은 실제 FCM 토큰
+            var deviceId = '\(deviceId)';  // iOS 디바이스 고유 ID (16자리)
 
             // 안드로이드 호환 생체인증 브릿지
             window.AndroidBiometric = {
@@ -159,7 +159,7 @@ extension ViewController: WKNavigationDelegate {
                     return true;
                 },
                 getFCMToken: function() {
-                    // 안드로이드와 동일하게 동기적으로 반환
+                    // Firebase에서 발급받은 FCM 토큰을 반환
                     return fcmToken;
                 }
             };
