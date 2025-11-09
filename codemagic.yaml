@@ -66,6 +66,6 @@ workflows:
           success: true
           failure: true
 
-      # TestFlight 배포는 UI에서 App Store Connect Integration 설정 후 활성화
-      # app_store_connect:
-      #   submit_to_testflight: true
+      app_store_connect:
+        submit_to_testflight: true
+        submit_to_app_store: false
