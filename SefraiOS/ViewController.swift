@@ -437,14 +437,21 @@ extension ViewController: WKScriptMessageHandler {
         let javascript = """
         (function() {
             var fcmToken = '\(token)';
+            var deviceId = '\(deviceId)';
+
             if (fcmToken && fcmToken.length > 0) {
                 console.log('📱 iOS FCM Token:', fcmToken);
+                console.log('📱 iOS Device ID:', deviceId);
 
                 // onB4xDataUpdated 함수 호출 (서버의 /api/update_fcm.php로 전송됨)
                 if (typeof onB4xDataUpdated === 'function') {
-                    console.log('✅ FCM 토큰을 서버로 전송합니다');
-                    onB4xDataUpdated({ fcmToken: fcmToken });
-                    console.log('✅ onB4xDataUpdated({ fcmToken }) 호출 완료');
+                    console.log('✅ FCM 토큰과 디바이스 ID를 서버로 전송합니다');
+                    // 안드로이드와 동일하게 fcmToken과 deviceId 전송
+                    onB4xDataUpdated({
+                        fcmToken: fcmToken,
+                        deviceId: deviceId
+                    });
+                    console.log('✅ onB4xDataUpdated({ fcmToken, deviceId }) 호출 완료');
                 } else {
                     console.error('❌ onB4xDataUpdated 함수가 없음 (로그인 안됨)');
                 }
