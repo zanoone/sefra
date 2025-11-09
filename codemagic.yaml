@@ -51,7 +51,7 @@ workflows:
         script: |
           #!/bin/sh
           cd $CM_BUILD_DIR
-          BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$BUNDLE_ID" \
+          BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number 6754912654 \
             --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
             --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
             --private-key @file:$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8) + 1))
