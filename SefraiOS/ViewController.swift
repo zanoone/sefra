@@ -7,10 +7,8 @@ class ViewController: UIViewController {
 
     private var webView: WKWebView!
     private var deviceId: String {
-        // UUID에서 하이픈 제거하고 소문자로 변환, 앞 16자리만 사용 (안드로이드와 동일한 형식)
-        let uuid = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
-        let cleanUUID = uuid.replacingOccurrences(of: "-", with: "").lowercased()
-        return String(cleanUUID.prefix(16))
+        // 전체 UUID 사용 (하이픈 포함)
+        return UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
     }
 
     override func viewDidLoad() {
@@ -456,17 +454,23 @@ extension ViewController: WKScriptMessageHandler {
         }
 
         print("FCM 토큰 웹으로 전송: \(token.prefix(20))...")
+        print("디바이스 ID: \(deviceId)")
 
         let javascript = """
         (function() {
             var fcmToken = '\(token)';
+            var deviceId = '\(deviceId)';
 
             if (fcmToken && fcmToken.length > 0) {
                 console.log('FCM Token available:', fcmToken.substring(0, 30) + '...');
+                console.log('Device ID:', deviceId);
 
                 if (typeof onB4xDataUpdated === 'function') {
-                    onB4xDataUpdated({ fcmToken: fcmToken });
-                    console.log('✅ onB4xDataUpdated 함수 호출됨 (fcmToken 전달)');
+                    onB4xDataUpdated({
+                        fcmToken: fcmToken,
+                        deviceId: deviceId
+                    });
+                    console.log('✅ onB4xDataUpdated 함수 호출됨 (fcmToken + deviceId 전달)');
                     return true;
                 } else {
                     console.warn('⚠️ onB4xDataUpdated 함수가 정의되지 않음');
