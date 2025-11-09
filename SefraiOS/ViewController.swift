@@ -176,42 +176,16 @@ extension ViewController: WKNavigationDelegate {
             console.log('✅ AndroidBiometric 브릿지 준비됨');
             console.log('✅ Native biometric available: true');
 
-            // FCM 토큰을 전역 함수로 노출 (안드로이드와 완전히 동일!)
-            window.sendFCMTokenToServer = function() {
-                console.log('🔄 sendFCMTokenToServer 호출됨');
+            console.log('✅ AndroidBiometric 브릿지 초기화 완료');
 
-                // 네이티브에서 실시간으로 토큰 가져오기
+            // iOS는 동기 호출 불가하므로, 네이티브가 직접 토큰 전송
+            // 페이지 로드 후 1초 뒤 자동 전송
+            setTimeout(function() {
+                console.log('🔄 FCM 토큰 자동 전송 요청 (네이티브로)...');
                 window.webkit.messageHandlers.AndroidBiometric.postMessage({
                     action: 'sendFCMToken'
                 });
-
-                return true;
-            };
-
-            // FCM 토큰 즉시 가져올 수 있는 함수도 제공 (안드로이드와 동일)
-            window.getFCMToken = function() {
-                console.log('⚠️ getFCMToken - iOS에서는 비동기 처리 필요');
-                return '';
-            };
-
-            console.log('✅ FCM 함수 준비됨: window.sendFCMTokenToServer(), window.getFCMToken()');
-
-            // onB4xDataUpdated 함수가 있으면 자동 전송 (안드로이드와 완전히 동일!)
-            if (typeof onB4xDataUpdated === 'function') {
-                console.log('✅ onB4xDataUpdated 함수 발견됨');
-                // 페이지 로드 후 1초 뒤 FCM 토큰 전송
-                setTimeout(function() {
-                    console.log('🔄 FCM 토큰 자동 전송 시도...');
-                    var result = window.sendFCMTokenToServer();
-                    if (result) {
-                        console.log('✅ FCM 토큰 자동 전송 요청 완료');
-                    } else {
-                        console.log('❌ FCM 토큰 자동 전송 실패');
-                    }
-                }, 1000);
-            } else {
-                console.log('⚠️ onB4xDataUpdated 함수가 아직 정의되지 않음 (로그인 후 사용 가능할 수 있음)');
-            }
+            }, 1000);
 
             console.log('========================================');
         })();
