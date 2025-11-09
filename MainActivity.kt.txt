@@ -1,0 +1,792 @@
+package com.sefra
+
+import android.content.Context
+import android.os.Build
+import android.os.Bundle
+import android.provider.Settings
+import android.util.Log
+import android.view.View
+import android.view.ViewGroup
+import android.webkit.CookieManager
+import android.webkit.ConsoleMessage
+import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
+import android.webkit.WebStorage
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
+import com.sefra.ui.theme.SefraTheme
+import com.google.firebase.messaging.FirebaseMessaging
+import java.io.File
+import android.app.Dialog
+import android.graphics.Color
+import android.view.WindowManager
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import android.content.Intent
+import android.net.Uri
+import android.content.ActivityNotFoundException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.net.HttpURLConnection
+import java.net.URL
+
+class MainActivity : FragmentActivity() {
+    var currentWebView: WebView? = null
+
+    override fun onResume() {
+        super.onResume()
+        // 다른 앱(본인인증 등)에서 돌아왔을 때 WebView 새로고침 방지
+        Log.d("MainActivity", "onResume called, WebView state preserved")
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // 최초 실행시에만 WebView 데이터 정리 (본인인증 등에서 돌아올 때는 세션 유지)
+        if (savedInstanceState == null) {
+            clearWebViewData()
+            Log.d("MainActivity", "First launch - WebView data cleared")
+        } else {
+            Log.d("MainActivity", "Restored from saved state - WebView data preserved")
+        }
+
+        // Initialize FCM and request notification permission
+        initializeFCM()
+
+        // Edge-to-Edge 활성화 (상태바 아래부터 시작)
+        enableEdgeToEdge()
+
+        setContent {
+            SefraTheme {
+                WebViewScreen()
+            }
+        }
+
+        // 상태바 색상 설정 (setContent 후에 해야 window가 준비됨)
+        try {
+            window.statusBarColor = android.graphics.Color.WHITE
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.insetsController?.setSystemBarsAppearance(
+                    android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+                    android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                )
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to set status bar color", e)
+        }
+
+        // Handle notification click
+        handleNotificationIntent(intent)
+    }
+
+    override fun onNewIntent(intent: android.content.Intent?) {
+        super.onNewIntent(intent)
+        intent?.let { handleNotificationIntent(it) }
+    }
+
+    private fun handleNotificationIntent(intent: android.content.Intent) {
+        val notificationType = intent.getStringExtra("notification_type")
+        val targetUrl = intent.getStringExtra("target_url")
+
+        if (notificationType != null && targetUrl != null && targetUrl.isNotEmpty()) {
+            Log.d("MainActivity", "Notification clicked: type=$notificationType, url=$targetUrl")
+
+            // Load target URL in WebView
+            currentWebView?.loadUrl(targetUrl)
+        }
+    }
+
+    private fun initializeFCM() {
+        try {
+            // Request notification permission for Android 13+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 100)
+            }
+
+            // Get FCM token
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    Log.w("MainActivity", "Fetching FCM token failed", task.exception)
+                    return@addOnCompleteListener
+                }
+
+                val token = task.result
+                Log.d("MainActivity", "FCM Token: $token")
+
+                // Store token locally
+                getSharedPreferences("sefra_prefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .putString("fcm_token", token)
+                    .apply()
+
+                Log.d("MainActivity", "FCM토큰저장됨 : $token")
+            }
+
+            // Subscribe to general topic for broadcast notifications
+            FirebaseMessaging.getInstance().subscribeToTopic("general")
+                .addOnCompleteListener { task ->
+                    val msg = if (task.isSuccessful) "Subscribed to general topic" else "Failed to subscribe"
+                    Log.d("MainActivity", msg)
+                }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "FCM initialization failed - continuing without FCM", e)
+        }
+    }
+
+    private fun clearWebViewData() {
+        // 세션 유지를 위해 쿠키와 스토리지는 삭제하지 않음
+        // CookieManager.getInstance().apply {
+        //     removeAllCookies(null)
+        //     flush()
+        // }
+
+        // WebStorage.getInstance().deleteAllData()  // localStorage도 유지
+
+        try {
+            cacheDir.deleteRecursively()
+            applicationContext.cacheDir.deleteRecursively()
+
+            val webViewDir = applicationContext.getDir("webview", Context.MODE_PRIVATE)
+            deleteRecursive(webViewDir)
+
+            val webViewCacheDir = File(applicationContext.cacheDir.absolutePath + "/webviewCache")
+            if (webViewCacheDir.exists()) {
+                deleteRecursive(webViewCacheDir)
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to delete webview directory", e)
+        }
+
+        Log.d("MainActivity", "WebView data cleared on app start")
+    }
+
+    private fun deleteRecursive(fileOrDirectory: java.io.File) {
+        if (fileOrDirectory.isDirectory) {
+            fileOrDirectory.listFiles()?.forEach { child ->
+                deleteRecursive(child)
+            }
+        }
+        fileOrDirectory.delete()
+    }
+
+    fun getAndroidDeviceId(): String {
+        return Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+    }
+
+    inner class BiometricInterface {
+        @JavascriptInterface
+        fun getFCMToken(): String {
+            return try {
+                val token = getSharedPreferences("sefra_prefs", Context.MODE_PRIVATE)
+                    .getString("fcm_token", "") ?: ""
+                Log.d("BiometricInterface", "FCM Token requested: $token")
+                token
+            } catch (e: Exception) {
+                Log.e("BiometricInterface", "Failed to get FCM token", e)
+                ""
+            }
+        }
+
+        @JavascriptInterface
+        fun sendTokenToServer(token: String, serverUrl: String) {
+            Log.d("BiometricInterface", "Sending FCM token to server: $serverUrl")
+
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val url = URL(serverUrl)
+                    val connection = url.openConnection() as HttpURLConnection
+                    connection.requestMethod = "POST"
+                    connection.setRequestProperty("Content-Type", "application/json")
+                    connection.doOutput = true
+
+                    val deviceId = getAndroidDeviceId()
+                    val jsonData = """{"fcm_token": "$token", "device_id": "$deviceId"}"""
+
+                    connection.outputStream.use { os ->
+                        os.write(jsonData.toByteArray())
+                        os.flush()
+                    }
+
+                    val responseCode = connection.responseCode
+                    Log.d("BiometricInterface", "Server response code: $responseCode")
+
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                        val response = connection.inputStream.bufferedReader().readText()
+                        Log.d("BiometricInterface", "Server response: $response")
+                    }
+
+                    connection.disconnect()
+                } catch (e: Exception) {
+                    Log.e("BiometricInterface", "Failed to send token to server", e)
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun authenticate() {
+            Log.d("BiometricAuth", "========================================")
+            Log.d("BiometricAuth", "authenticate() called from JavaScript")
+            Log.d("BiometricAuth", "========================================")
+
+            runOnUiThread {
+                val executor = ContextCompat.getMainExecutor(this@MainActivity)
+                val biometricPrompt = BiometricPrompt(this@MainActivity, executor,
+                    object : BiometricPrompt.AuthenticationCallback() {
+                        override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                            super.onAuthenticationError(errorCode, errString)
+                            Log.e("BiometricAuth", "❌ Authentication ERROR")
+                            Log.e("BiometricAuth", "Error code: $errorCode")
+                            Log.e("BiometricAuth", "Error message: $errString")
+
+                            currentWebView?.evaluateJavascript(
+                                "if(window.onBiometricResult) window.onBiometricResult(false, '$errString');",
+                                null
+                            )
+                        }
+
+                        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                            super.onAuthenticationSucceeded(result)
+                            Log.d("BiometricAuth", "✅ Authentication SUCCEEDED!")
+                            Log.d("BiometricAuth", "Building credential data...")
+
+                            runOnUiThread {
+                                try {
+                                    val deviceId = getAndroidDeviceId()
+                                    val timestamp = System.currentTimeMillis()
+
+                                    Log.d("BiometricAuth", "Device ID: $deviceId")
+                                    Log.d("BiometricAuth", "Timestamp: $timestamp")
+                                    Log.d("BiometricAuth", "Fetching passkeyChallenge from window...")
+
+                                    currentWebView?.evaluateJavascript("window.passkeyChallenge") { challengeResult ->
+                                        Log.d("BiometricAuth", "Challenge result: $challengeResult")
+
+                                        currentWebView?.evaluateJavascript("window.passkeyRpId") { rpIdResult ->
+                                            Log.d("BiometricAuth", "RpId result: $rpIdResult")
+
+                                            val challenge = challengeResult?.trim('"') ?: "android_biometric_challenge_$timestamp"
+                                            val rpId = rpIdResult?.trim('"') ?: "sefra.kr"
+
+                                            Log.d("BiometricAuth", "Using challenge: $challenge")
+                                            Log.d("BiometricAuth", "Using rpId: $rpId")
+
+                                            val credentialId = "android_biometric_$deviceId"
+                                            val origin = "https://$rpId"
+
+                                            Log.d("BiometricAuth", "Credential ID: $credentialId")
+                                            Log.d("BiometricAuth", "Origin: $origin")
+
+                                            val clientDataJSON = """{"type":"webauthn.create","challenge":"$challenge","origin":"$origin","crossOrigin":false,"android_biometric":true}"""
+                                            val clientDataBase64 = android.util.Base64.encodeToString(clientDataJSON.toByteArray(), android.util.Base64.NO_WRAP or android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING)
+
+                                            val attestationObject = "android_biometric_attestation"
+                                            val attestationBase64 = android.util.Base64.encodeToString(attestationObject.toByteArray(), android.util.Base64.NO_WRAP or android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING)
+
+                                            Log.d("BiometricAuth", "ClientDataJSON: $clientDataJSON")
+                                            Log.d("BiometricAuth", "ClientData Base64: $clientDataBase64")
+                                            Log.d("BiometricAuth", "Attestation Base64: $attestationBase64")
+
+                                            val passkeyData = """
+                                                {
+                                                    "id": "$credentialId",
+                                                    "type": "public-key",
+                                                    "clientDataJSON": "$clientDataBase64",
+                                                    "attestationObject": "$attestationBase64",
+                                                    "transports": ["internal"],
+                                                    "android_biometric": true,
+                                                    "device_id": "$deviceId",
+                                                    "timestamp": $timestamp
+                                                }
+                                            """.trimIndent()
+
+                                            Log.d("BiometricAuth", "=== PasskeyData JSON START ===")
+                                            Log.d("BiometricAuth", passkeyData)
+                                            Log.d("BiometricAuth", "=== PasskeyData JSON END ===")
+
+                                            val jsCode = "javascript:(function(){" +
+                                                    "try{" +
+                                                    "console.log('[BiometricAuth] JavaScript execution started');" +
+                                                    "var d={" +
+                                                    "id:'$credentialId'," +
+                                                    "type:'public-key'," +
+                                                    "clientDataJSON:'$clientDataBase64'," +
+                                                    "attestationObject:'$attestationBase64'," +
+                                                    "transports:['internal']," +
+                                                    "android_biometric:true," +
+                                                    "device_id:'$deviceId'," +
+                                                    "timestamp:$timestamp" +
+                                                    "};" +
+                                                    "console.log('[BiometricAuth] PasskeyData object created:',JSON.stringify(d));" +
+                                                    "if(window.onBiometricResult){" +
+                                                    "console.log('[BiometricAuth] Calling onBiometricResult...');" +
+                                                    "window.onBiometricResult(true,'Success',d);" +
+                                                    "console.log('[BiometricAuth] onBiometricResult called OK');" +
+                                                    "}else{" +
+                                                    "console.log('[BiometricAuth] ⚠️ window.onBiometricResult NOT FOUND');" +
+                                                    "}" +
+                                                    "var regData={id:'$credentialId',rawId:'${android.util.Base64.encodeToString(credentialId.toByteArray(), android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING)}',type:'public-key',response:{clientDataJSON:'$clientDataBase64',attestationObject:'$attestationBase64'}};" +
+                                                    "console.log('[BiometricAuth] RegData created:',JSON.stringify(regData));" +
+                                                    "if(window.onPasskeyRegistered){" +
+                                                    "console.log('[BiometricAuth] Calling onPasskeyRegistered...');" +
+                                                    "window.onPasskeyRegistered(JSON.stringify(regData));" +
+                                                    "console.log('[BiometricAuth] onPasskeyRegistered called OK');" +
+                                                    "}else{" +
+                                                    "console.log('[BiometricAuth] ℹ️ window.onPasskeyRegistered NOT FOUND (might be login, not registration)');" +
+                                                    "}" +
+                                                    "if(window.onBiometricLoginSuccess){" +
+                                                    "console.log('[BiometricAuth] Calling onBiometricLoginSuccess...');" +
+                                                    "console.log('[BiometricAuth] Sending data to onBiometricLoginSuccess:',JSON.stringify(d));" +
+                                                    "window.onBiometricLoginSuccess(d);" +
+                                                    "console.log('[BiometricAuth] ✅ onBiometricLoginSuccess called OK');" +
+                                                    "}else{" +
+                                                    "console.log('[BiometricAuth] ⚠️ window.onBiometricLoginSuccess NOT FOUND');" +
+                                                    "}" +
+                                                    "console.log('[BiometricAuth] JavaScript execution finished');" +
+                                                    "}catch(e){" +
+                                                    "console.error('[BiometricAuth] ❌ JavaScript Error:',e);" +
+                                                    "console.error('[BiometricAuth] Error stack:',e.stack);" +
+                                                    "alert('BiometricAuth JS Error: '+e.message);" +
+                                                    "}" +
+                                                    "})();"
+
+                                            Log.d("BiometricAuth", "=== JavaScript Code START ===")
+                                            Log.d("BiometricAuth", jsCode)
+                                            Log.d("BiometricAuth", "=== JavaScript Code END ===")
+                                            Log.d("BiometricAuth", "Executing JavaScript now...")
+
+                                            currentWebView?.loadUrl(jsCode)
+
+                                            Log.d("BiometricAuth", "✅ JavaScript executed via loadUrl()")
+                                            Log.d("BiometricAuth", "Check WebView console logs for callback execution")
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("BiometricAuth", "❌ EXCEPTION in onAuthenticationSucceeded", e)
+                                    Log.e("BiometricAuth", "Exception message: ${e.message}")
+                                    Log.e("BiometricAuth", "Exception stack trace:")
+                                    e.printStackTrace()
+                                }
+                            }
+                        }
+
+                        override fun onAuthenticationFailed() {
+                            super.onAuthenticationFailed()
+                            Log.w("BiometricAuth", "⚠️ Authentication FAILED (retry possible)")
+                        }
+                    })
+
+                val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("패스키 인증")
+                    .setSubtitle("지문 또는 얼굴 인식으로 인증하세요")
+                    .setNegativeButtonText("취소")
+                    .build()
+
+                Log.d("BiometricAuth", "Showing biometric prompt...")
+                biometricPrompt.authenticate(promptInfo)
+                Log.d("BiometricAuth", "Biometric prompt displayed, waiting for user...")
+            }
+        }
+
+        @JavascriptInterface
+        fun isAvailable(): Boolean {
+            val biometricManager = BiometricManager.from(this@MainActivity)
+            return biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
+        }
+    }
+}
+
+@Composable
+fun WebViewScreen() {
+    val context = LocalContext.current
+    val activity = context as? MainActivity
+    var webView: WebView? by remember { mutableStateOf(null) }
+
+    val deviceId = remember {
+        activity?.getAndroidDeviceId() ?: ""
+    }
+
+    BackHandler(enabled = true) {
+        if (webView?.canGoBack() == true) {
+            webView?.goBack()
+        } else {
+            activity?.finish()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            webView?.let {
+                it.clearCache(true)
+                it.clearHistory()
+                it.clearFormData()
+                Log.d("WebViewScreen", "WebView cache and history cleared")
+            }
+        }
+    }
+
+    AndroidView(
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding(),
+        factory = { context ->
+            WebView(context).also {
+                webView = it
+                activity?.currentWebView = it
+            }.apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+
+                WebView.setWebContentsDebuggingEnabled(true)
+
+                // 쿠키 허용 (세션 유지를 위해)
+                val cookieManager = CookieManager.getInstance()
+                cookieManager.setAcceptCookie(true)
+                cookieManager.setAcceptThirdPartyCookies(this, true)
+
+                activity?.let {
+                    addJavascriptInterface(it.BiometricInterface(), "AndroidBiometric")
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+                }
+
+                settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    databaseEnabled = true
+                    loadWithOverviewMode = true
+                    useWideViewPort = true
+                    setSupportZoom(true)
+                    builtInZoomControls = true
+                    displayZoomControls = false
+                    saveFormData = false
+                    allowFileAccess = false
+                    allowContentAccess = false
+                    // cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE  // 세션 유지를 위해 주석처리
+                    cacheMode = android.webkit.WebSettings.LOAD_DEFAULT  // 기본 캐시 모드 사용
+
+                    // 팝업 및 새 창 지원
+                    javaScriptCanOpenWindowsAutomatically = true
+                    setSupportMultipleWindows(true)
+
+                    userAgentString = "Mozilla/5.0 (Linux; Android ${Build.VERSION.RELEASE}; ${Build.MODEL}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 Sefra/1.0"
+                }
+
+                webChromeClient = object : WebChromeClient() {
+                    override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                        val msg = consoleMessage?.message() ?: ""
+                        val source = consoleMessage?.sourceId() ?: ""
+                        val line = consoleMessage?.lineNumber() ?: 0
+
+                        // 특별히 BiometricAuth 관련 로그는 강조 표시
+                        if (msg.contains("[BiometricAuth]") || msg.contains("onBiometricLoginSuccess")) {
+                            Log.i("WebView-JS", "🔐 $msg [$source:$line]")
+                        } else {
+                            Log.d("WebView-JS", "$msg [$source:$line]")
+                        }
+                        return true
+                    }
+
+                    // 새 창 열기 처리 (팝업, 본인인증 등)
+                    override fun onCreateWindow(
+                        view: WebView?,
+                        isDialog: Boolean,
+                        isUserGesture: Boolean,
+                        resultMsg: android.os.Message?
+                    ): Boolean {
+                        val newWebView = WebView(activity ?: context)
+                        newWebView.settings.apply {
+                            javaScriptEnabled = true
+                            javaScriptCanOpenWindowsAutomatically = true
+                            setSupportMultipleWindows(true)
+                            domStorageEnabled = true
+                        }
+
+                        // Dialog 생성
+                        val dialog = Dialog(activity ?: context, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+                        dialog.setContentView(newWebView)
+
+                        // 상태바 투명하게 설정
+                        dialog.window?.apply {
+                            setFlags(
+                                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                            )
+                        }
+
+                        newWebView.webViewClient = object : WebViewClient() {
+                            override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                                val url = request?.url.toString()
+                                Log.d("WebView", "Popup loading: $url")
+
+                                return when {
+                                    // intent:// scheme 처리 (본인인증 등)
+                                    url.startsWith("intent://") -> {
+                                        try {
+                                            val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+
+                                            activity?.let { act ->
+                                                try {
+                                                    act.startActivity(intent)
+                                                    Log.d("WebView", "Intent launched from popup: $url")
+                                                } catch (e: ActivityNotFoundException) {
+                                                    // 앱이 설치되지 않은 경우
+                                                    val fallbackUrl = intent.getStringExtra("browser_fallback_url")
+                                                    val packageName = intent.getPackage()
+
+                                                    when {
+                                                        // fallback URL이 있으면 그것을 로드
+                                                        !fallbackUrl.isNullOrEmpty() -> {
+                                                            view?.loadUrl(fallbackUrl)
+                                                            Log.d("WebView", "Loading fallback URL from popup: $fallbackUrl")
+                                                        }
+                                                        // 패키지명이 있으면 마켓으로 이동
+                                                        !packageName.isNullOrEmpty() -> {
+                                                            val marketIntent = Intent(Intent.ACTION_VIEW)
+                                                            marketIntent.data = Uri.parse("market://details?id=$packageName")
+                                                            try {
+                                                                act.startActivity(marketIntent)
+                                                                Log.d("WebView", "Market opened from popup: $packageName")
+                                                            } catch (e2: Exception) {
+                                                                Log.e("WebView", "Failed to open market from popup", e2)
+                                                            }
+                                                        }
+                                                        else -> {
+                                                            Log.e("WebView", "No app to handle intent from popup and no fallback", e)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            true
+                                        } catch (e: Exception) {
+                                            Log.e("WebView", "Failed to parse intent from popup: $url", e)
+                                            false
+                                        }
+                                    }
+                                    // 일반 http/https URL
+                                    url.startsWith("http://") || url.startsWith("https://") -> {
+                                        view?.loadUrl(url)
+                                        false
+                                    }
+                                    // 기타 custom scheme
+                                    else -> {
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                            activity?.startActivity(intent)
+                                            Log.d("WebView", "External scheme from popup: $url")
+                                            true
+                                        } catch (e: ActivityNotFoundException) {
+                                            Log.e("WebView", "No app to handle from popup: $url", e)
+                                            false
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        newWebView.webChromeClient = object : WebChromeClient() {
+                            override fun onCloseWindow(window: WebView?) {
+                                Log.d("WebView", "Popup window closed")
+                                dialog.dismiss()
+                            }
+                        }
+
+                        dialog.setOnDismissListener {
+                            newWebView.destroy()
+                        }
+
+                        val transport = resultMsg?.obj as? android.webkit.WebView.WebViewTransport
+                        transport?.webView = newWebView
+                        resultMsg?.sendToTarget()
+
+                        dialog.show()
+                        Log.d("WebView", "Popup dialog shown")
+                        return true
+                    }
+                }
+
+                webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                        val url = request?.url.toString()
+
+                        return when {
+                            // intent:// scheme 처리 (본인인증 등)
+                            url.startsWith("intent://") -> {
+                                try {
+                                    val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+
+                                    activity?.let { act ->
+                                        try {
+                                            act.startActivity(intent)
+                                            Log.d("WebView", "Intent launched: $url")
+                                        } catch (e: ActivityNotFoundException) {
+                                            // 앱이 설치되지 않은 경우
+                                            val fallbackUrl = intent.getStringExtra("browser_fallback_url")
+                                            val packageName = intent.getPackage()
+
+                                            when {
+                                                // fallback URL이 있으면 그것을 로드
+                                                !fallbackUrl.isNullOrEmpty() -> {
+                                                    view?.loadUrl(fallbackUrl)
+                                                    Log.d("WebView", "Loading fallback URL: $fallbackUrl")
+                                                }
+                                                // 패키지명이 있으면 마켓으로 이동
+                                                !packageName.isNullOrEmpty() -> {
+                                                    val marketIntent = Intent(Intent.ACTION_VIEW)
+                                                    marketIntent.data = Uri.parse("market://details?id=$packageName")
+                                                    try {
+                                                        act.startActivity(marketIntent)
+                                                        Log.d("WebView", "Market opened for: $packageName")
+                                                    } catch (e2: Exception) {
+                                                        Log.e("WebView", "Failed to open market", e2)
+                                                    }
+                                                }
+                                                else -> {
+                                                    Log.e("WebView", "No app to handle intent and no fallback", e)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    true
+                                } catch (e: Exception) {
+                                    Log.e("WebView", "Failed to parse intent: $url", e)
+                                    false
+                                }
+                            }
+                            // 일반 http/https URL
+                            url.startsWith("http://") || url.startsWith("https://") -> {
+                                view?.loadUrl(url)
+                                false
+                            }
+                            // 기타 custom scheme (전화, SMS 등)
+                            else -> {
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                    activity?.startActivity(intent)
+                                    Log.d("WebView", "External scheme launched: $url")
+                                    true
+                                } catch (e: ActivityNotFoundException) {
+                                    Log.e("WebView", "No app to handle: $url", e)
+                                    false
+                                }
+                            }
+                        }
+                    }
+
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        super.onPageFinished(view, url)
+                        Log.d("WebView-Navigation", "📄 Page loaded: $url")
+
+                        view?.evaluateJavascript("""
+                            (function() {
+                                // 자동완성 비활성화
+                                var inputs = document.querySelectorAll('input, textarea');
+                                inputs.forEach(function(input) {
+                                    input.setAttribute('autocomplete', 'off');
+                                });
+
+                                // PublicKeyCredential polyfill for Android WebView
+                                if (typeof AndroidBiometric !== 'undefined' && AndroidBiometric.isAvailable()) {
+                                    if (typeof window.PublicKeyCredential === 'undefined') {
+                                        window.PublicKeyCredential = function() {};
+                                        console.log('PublicKeyCredential polyfill injected');
+                                    }
+                                }
+
+                                // 생체인증 사용 가능 여부 확인
+                                var biometricAvailable = typeof AndroidBiometric !== 'undefined' && AndroidBiometric.isAvailable();
+                                console.log('Native biometric available: ' + biometricAvailable);
+
+                                // FCM 토큰을 전역 함수로 노출 (로그인 후 웹에서 호출)
+                                window.sendFCMTokenToServer = function() {
+                                    if (typeof AndroidBiometric !== 'undefined') {
+                                        try {
+                                            var fcmToken = AndroidBiometric.getFCMToken();
+                                            if (fcmToken && fcmToken.length > 0) {
+                                                console.log('FCM Token available:', fcmToken.substring(0, 30) + '...');
+
+                                                if (typeof onB4xDataUpdated === 'function') {
+                                                    onB4xDataUpdated({ fcmToken: fcmToken });
+                                                    console.log('✅ onB4xDataUpdated 함수 호출됨 (fcmToken 전달)');
+                                                    return true;
+                                                } else {
+                                                    console.warn('⚠️ onB4xDataUpdated 함수가 정의되지 않음');
+                                                    return false;
+                                                }
+                                            } else {
+                                                console.warn('⚠️ FCM 토큰이 아직 준비되지 않음');
+                                                return false;
+                                            }
+                                        } catch (e) {
+                                            console.error('❌ FCM 토큰 처리 실패:', e);
+                                            return false;
+                                        }
+                                    } else {
+                                        console.error('❌ AndroidBiometric이 정의되지 않음');
+                                        return false;
+                                    }
+                                };
+
+                                // FCM 토큰 즉시 가져올 수 있는 함수도 제공
+                                window.getFCMToken = function() {
+                                    if (typeof AndroidBiometric !== 'undefined') {
+                                        return AndroidBiometric.getFCMToken();
+                                    }
+                                    return '';
+                                };
+
+                                console.log('✅ FCM 함수 준비됨: window.sendFCMTokenToServer(), window.getFCMToken()');
+
+                                // onB4xDataUpdated 함수가 있으면 자동 전송
+                                if (typeof onB4xDataUpdated === 'function') {
+                                    console.log('✅ onB4xDataUpdated 함수 발견됨');
+                                    // 페이지 로드 후 1초 뒤 FCM 토큰 전송
+                                    setTimeout(function() {
+                                        console.log('🔄 FCM 토큰 자동 전송 시도...');
+                                        var result = window.sendFCMTokenToServer();
+                                        if (result) {
+                                            console.log('✅ FCM 토큰 자동 전송 성공');
+                                        } else {
+                                            console.log('❌ FCM 토큰 자동 전송 실패');
+                                        }
+                                    }, 1000);
+                                } else {
+                                    console.log('⚠️ onB4xDataUpdated 함수가 아직 정의되지 않음 (로그인 후 사용 가능할 수 있음)');
+                                }
+                            })();
+                        """.trimIndent(), null)
+                    }
+                }
+
+                val urlWithDevice = "https://sefra.kr?device=$deviceId"
+                Log.d("WebViewScreen", "Loading URL: $urlWithDevice")
+                loadUrl(urlWithDevice)
+            }
+        }
+    )
+}
