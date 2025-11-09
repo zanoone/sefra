@@ -127,6 +127,9 @@ extension ViewController: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         print("페이지 로드 완료: \(webView.url?.absoluteString ?? "")")
 
+        // FCM 토큰 가져오기
+        let fcmToken = UserDefaults.standard.string(forKey: "fcm_token") ?? ""
+
         // JavaScript 주입
         let javascript = """
         (function() {
@@ -135,6 +138,10 @@ extension ViewController: WKNavigationDelegate {
             inputs.forEach(function(input) {
                 input.setAttribute('autocomplete', 'off');
             });
+
+            // FCM 토큰과 디바이스 ID 미리 설정 (안드로이드와 동일)
+            var fcmToken = '\(fcmToken)';
+            var deviceId = '\(deviceId)';
 
             // 안드로이드 호환 생체인증 브릿지
             window.AndroidBiometric = {
@@ -150,6 +157,10 @@ extension ViewController: WKNavigationDelegate {
                         action: 'isAvailable'
                     });
                     return true;
+                },
+                getFCMToken: function() {
+                    // 안드로이드와 동일하게 동기적으로 반환
+                    return fcmToken;
                 }
             };
 
@@ -157,25 +168,28 @@ extension ViewController: WKNavigationDelegate {
             console.log('✅ AndroidBiometric 브릿지 준비됨');
             console.log('✅ Native biometric available: true');
 
-            // FCM 토큰 가져오기 함수 (필요시 사용)
+            // FCM 함수 (안드로이드와 호환)
             window.getFCMToken = function() {
-                window.webkit.messageHandlers.AndroidBiometric.postMessage({
-                    action: 'getFCMToken'
-                });
+                return fcmToken;
             };
 
             console.log('✅ FCM 함수 준비됨: window.getFCMToken()');
 
-            // onB4xDataUpdated 함수가 있으면 자동 전송 (안드로이드와 동일)
+            // onB4xDataUpdated 함수가 있으면 자동 전송 (안드로이드와 완전히 동일!)
             if (typeof onB4xDataUpdated === 'function') {
                 console.log('✅ onB4xDataUpdated 함수 발견됨');
                 // 페이지 로드 후 1초 뒤 FCM 토큰 전송
                 setTimeout(function() {
                     console.log('🔄 FCM 토큰 자동 전송 시도...');
-                    window.webkit.messageHandlers.AndroidBiometric.postMessage({
-                        action: 'getFCMToken'
-                    });
-                    console.log('✅ getFCMToken 요청 완료');
+                    if (fcmToken && fcmToken.length > 0) {
+                        onB4xDataUpdated({
+                            fcmToken: fcmToken,
+                            deviceId: deviceId
+                        });
+                        console.log('✅ onB4xDataUpdated 함수 호출됨 (fcmToken, deviceId 전달)');
+                    } else {
+                        console.warn('⚠️ FCM 토큰이 아직 준비되지 않음');
+                    }
                 }, 1000);
             } else {
                 console.log('⚠️ onB4xDataUpdated 함수가 아직 정의되지 않음 (로그인 후 사용 가능할 수 있음)');
@@ -190,10 +204,16 @@ extension ViewController: WKNavigationDelegate {
                         console.log('✅✅✅ onB4xDataUpdated 함수 발견됨! (로그인 완료)');
                         clearInterval(checkInterval);
 
-                        // FCM 토큰 가져와서 바로 onB4xDataUpdated 호출
-                        window.webkit.messageHandlers.AndroidBiometric.postMessage({
-                            action: 'getFCMToken'
-                        });
+                        // FCM 토큰 바로 전송 (안드로이드와 동일!)
+                        if (fcmToken && fcmToken.length > 0) {
+                            onB4xDataUpdated({
+                                fcmToken: fcmToken,
+                                deviceId: deviceId
+                            });
+                            console.log('✅ onB4xDataUpdated 함수 호출됨 (fcmToken, deviceId 전달)');
+                        } else {
+                            console.warn('⚠️ FCM 토큰이 없음');
+                        }
                     } else if (checkCount >= maxChecks) {
                         console.log('⚠️ onB4xDataUpdated 함수를 찾지 못함 (타임아웃)');
                         clearInterval(checkInterval);
