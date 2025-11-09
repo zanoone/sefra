@@ -9,14 +9,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
-    // 디버그 로그를 ViewController에 전송하는 헬퍼 함수
-    private func print(_ message: String) {
-        print(message)  // Xcode 콘솔에도 출력
-        DispatchQueue.main.async {
-            NotificationCenter.default.post(name: NSNotification.Name("AppDelegateLog"), object: message)
-        }
-    }
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 
         // Firebase 초기화
