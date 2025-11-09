@@ -5,10 +5,10 @@ platform :ios, '14.0'
 target 'SefraiOS' do
   use_frameworks!
 
-  # Firebase - 안정적인 버전 사용
-  pod 'Firebase/Core', '10.29.0'
-  pod 'Firebase/Messaging', '10.29.0'
-  pod 'Firebase/Analytics', '10.29.0'
+  # Firebase - Xcode 15.0 호환 버전
+  pod 'Firebase/Core', '10.20.0'
+  pod 'Firebase/Messaging', '10.20.0'
+  pod 'Firebase/Analytics', '10.20.0'
 
 end
 
