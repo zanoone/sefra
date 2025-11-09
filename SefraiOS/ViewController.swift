@@ -95,34 +95,16 @@ class ViewController: UIViewController {
     @objc private func fcmTokenUpdated(_ notification: Notification) {
         guard let token = notification.object as? String else { return }
         print("========================================")
-        print("FCM 토큰 업데이트됨: \(token)")
+        print("FCM 토큰 업데이트됨: \(token.prefix(20))...")
         print("즉시 웹으로 전송 시도...")
         print("========================================")
 
-        // UserDefaults에 저장
+        // UserDefaults에 저장 (이미 AppDelegate에서 저장되지만 이중 보장)
         UserDefaults.standard.set(token, forKey: "fcm_token")
         UserDefaults.standard.synchronize()
 
-        // 웹뷰가 로드되어 있으면 즉시 전송
-        let javascript = """
-        (function() {
-            console.log('🔄 FCM 토큰 업데이트됨 - 즉시 전송 시도');
-            var fcmToken = '\(token)';
-            var deviceId = '\(deviceId)';
-
-            if (typeof onB4xDataUpdated === 'function') {
-                onB4xDataUpdated({
-                    fcmToken: fcmToken,
-                    deviceId: deviceId
-                });
-                console.log('✅ FCM 토큰 즉시 전송 완료!');
-            } else {
-                console.log('⚠️ onB4xDataUpdated 함수 아직 없음 (나중에 자동 전송됨)');
-            }
-        })();
-        """
-
-        webView?.evaluateJavaScript(javascript, completionHandler: nil)
+        // 웹뷰가 로드되어 있으면 즉시 전송 (안드로이드와 동일)
+        sendFCMTokenToWeb()
     }
 
     @objc private func loadURLFromNotification(_ notification: Notification) {
@@ -145,19 +127,10 @@ extension ViewController: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         print("========================================")
         print("📄 페이지 로드 완료: \(webView.url?.absoluteString ?? "")")
-
-        // Firebase에서 제공한 FCM 토큰 가져오기 (AppDelegate에서 저장됨)
-        let fcmToken = UserDefaults.standard.string(forKey: "fcm_token") ?? ""
-
-        if fcmToken.isEmpty {
-            print("⚠️ FCM 토큰이 아직 UserDefaults에 없음 (나중에 발급되면 자동 전송됨)")
-        } else {
-            print("✅ FCM 토큰 발견: \(fcmToken.prefix(20))...")
-        }
         print("✅ deviceId: \(deviceId)")
         print("========================================")
 
-        // JavaScript 주입
+        // JavaScript 주입 (안드로이드와 완전히 동일한 로직!)
         let javascript = """
         (function() {
             console.log('========================================');
@@ -169,12 +142,11 @@ extension ViewController: WKNavigationDelegate {
                 input.setAttribute('autocomplete', 'off');
             });
 
-            // Firebase에서 제공한 FCM 토큰과 디바이스 ID 설정
-            var fcmToken = '\(fcmToken)';  // Firebase Messaging에서 발급받은 실제 FCM 토큰
-            var deviceId = '\(deviceId)';  // iOS 디바이스 고유 ID (16자리)
-
-            console.log('FCM 토큰 상태:', fcmToken ? ('있음: ' + fcmToken.substring(0, 20) + '...') : '없음');
-            console.log('디바이스 ID:', deviceId);
+            // PublicKeyCredential polyfill
+            if (typeof window.PublicKeyCredential === 'undefined') {
+                window.PublicKeyCredential = function() {};
+                console.log('PublicKeyCredential polyfill injected');
+            }
 
             // 안드로이드 호환 생체인증 브릿지
             window.AndroidBiometric = {
@@ -192,64 +164,53 @@ extension ViewController: WKNavigationDelegate {
                     return true;
                 },
                 getFCMToken: function() {
-                    return fcmToken;
+                    // 안드로이드와 동일: 실시간으로 UserDefaults에서 가져옴
+                    var token = '';
+                    window.webkit.messageHandlers.AndroidBiometric.postMessage({
+                        action: 'getFCMToken'
+                    });
+                    return token;  // 동기 방식이므로 일단 빈 문자열 반환
                 }
             };
 
             console.log('✅ AndroidBiometric 브릿지 준비됨');
             console.log('✅ Native biometric available: true');
 
-            // FCM 함수 (안드로이드와 호환)
-            window.getFCMToken = function() {
-                return fcmToken;
+            // FCM 토큰을 전역 함수로 노출 (안드로이드와 완전히 동일!)
+            window.sendFCMTokenToServer = function() {
+                console.log('🔄 sendFCMTokenToServer 호출됨');
+
+                // 네이티브에서 실시간으로 토큰 가져오기
+                window.webkit.messageHandlers.AndroidBiometric.postMessage({
+                    action: 'sendFCMToken'
+                });
+
+                return true;
             };
 
-            console.log('✅ FCM 함수 준비됨: window.getFCMToken()');
+            // FCM 토큰 즉시 가져올 수 있는 함수도 제공 (안드로이드와 동일)
+            window.getFCMToken = function() {
+                console.log('⚠️ getFCMToken - iOS에서는 비동기 처리 필요');
+                return '';
+            };
 
-            // onB4xDataUpdated 함수 확인 및 전송
+            console.log('✅ FCM 함수 준비됨: window.sendFCMTokenToServer(), window.getFCMToken()');
+
+            // onB4xDataUpdated 함수가 있으면 자동 전송 (안드로이드와 완전히 동일!)
             if (typeof onB4xDataUpdated === 'function') {
-                console.log('✅ onB4xDataUpdated 함수 발견됨 (이미 로그인됨)');
+                console.log('✅ onB4xDataUpdated 함수 발견됨');
+                // 페이지 로드 후 1초 뒤 FCM 토큰 전송
                 setTimeout(function() {
                     console.log('🔄 FCM 토큰 자동 전송 시도...');
-                    // 토큰이 없어도 deviceId는 전송
-                    var data = { deviceId: deviceId };
-                    if (fcmToken && fcmToken.length > 0) {
-                        data.fcmToken = fcmToken;
-                        console.log('✅ onB4xDataUpdated 호출 (fcmToken + deviceId)');
+                    var result = window.sendFCMTokenToServer();
+                    if (result) {
+                        console.log('✅ FCM 토큰 자동 전송 요청 완료');
                     } else {
-                        console.log('⚠️ onB4xDataUpdated 호출 (deviceId만, 토큰은 나중에)');
+                        console.log('❌ FCM 토큰 자동 전송 실패');
                     }
-                    onB4xDataUpdated(data);
                 }, 1000);
             } else {
-                console.log('⚠️ onB4xDataUpdated 함수 없음 (로그인 전 - 120초 대기 시작)');
-
-                // 로그인 후 onB4xDataUpdated 함수 대기
-                var checkCount = 0;
-                var maxChecks = 120;
-                var checkInterval = setInterval(function() {
-                    checkCount++;
-
-                    if (typeof onB4xDataUpdated === 'function') {
-                        console.log('🎉 onB4xDataUpdated 함수 발견됨! (' + checkCount + '초 후)');
-                        clearInterval(checkInterval);
-
-                        // 토큰이 없어도 deviceId는 전송
-                        var data = { deviceId: deviceId };
-                        if (fcmToken && fcmToken.length > 0) {
-                            data.fcmToken = fcmToken;
-                            console.log('✅ onB4xDataUpdated 호출 (fcmToken + deviceId)');
-                        } else {
-                            console.log('⚠️ onB4xDataUpdated 호출 (deviceId만, 토큰은 나중에)');
-                        }
-                        onB4xDataUpdated(data);
-                    } else if (checkCount >= maxChecks) {
-                        console.error('❌ onB4xDataUpdated 함수 타임아웃 (120초)');
-                        clearInterval(checkInterval);
-                    } else if (checkCount % 10 === 0) {
-                        console.log('⏳ onB4xDataUpdated 대기 중... (' + checkCount + '초)');
-                    }
-                }, 1000);
+                console.log('⚠️ onB4xDataUpdated 함수가 아직 정의되지 않음 (로그인 후 사용 가능할 수 있음)');
             }
 
             console.log('========================================');
@@ -334,7 +295,8 @@ extension ViewController: WKScriptMessageHandler {
         case "isAvailable":
             checkBiometricAvailability()
 
-        case "getFCMToken":
+        case "getFCMToken", "sendFCMToken":
+            // 안드로이드와 동일: 실시간으로 UserDefaults에서 토큰 가져와서 전송
             sendFCMTokenToWeb()
 
         default:
@@ -494,31 +456,32 @@ extension ViewController: WKScriptMessageHandler {
 
     private func sendFCMTokenToWeb() {
         let token = UserDefaults.standard.string(forKey: "fcm_token") ?? ""
-        print("FCM 토큰 웹으로 전송: \(token)")
+
+        if token.isEmpty {
+            print("⚠️ FCM 토큰이 아직 없음")
+            return
+        }
+
+        print("FCM 토큰 웹으로 전송: \(token.prefix(20))...")
 
         let javascript = """
         (function() {
             var fcmToken = '\(token)';
-            var deviceId = '\(deviceId)';
 
             if (fcmToken && fcmToken.length > 0) {
-                console.log('📱 iOS FCM Token:', fcmToken);
-                console.log('📱 iOS Device ID:', deviceId);
+                console.log('FCM Token available:', fcmToken.substring(0, 30) + '...');
 
-                // onB4xDataUpdated 함수 호출 (서버의 /api/update_fcm.php로 전송됨)
                 if (typeof onB4xDataUpdated === 'function') {
-                    console.log('✅ FCM 토큰과 디바이스 ID를 서버로 전송합니다');
-                    // 안드로이드와 동일하게 fcmToken과 deviceId 전송
-                    onB4xDataUpdated({
-                        fcmToken: fcmToken,
-                        deviceId: deviceId
-                    });
-                    console.log('✅ onB4xDataUpdated({ fcmToken, deviceId }) 호출 완료');
+                    onB4xDataUpdated({ fcmToken: fcmToken });
+                    console.log('✅ onB4xDataUpdated 함수 호출됨 (fcmToken 전달)');
+                    return true;
                 } else {
-                    console.error('❌ onB4xDataUpdated 함수가 없음 (로그인 안됨)');
+                    console.warn('⚠️ onB4xDataUpdated 함수가 정의되지 않음');
+                    return false;
                 }
             } else {
-                console.warn('⚠️ FCM 토큰이 없습니다');
+                console.warn('⚠️ FCM 토큰이 아직 준비되지 않음');
+                return false;
             }
         })();
         """
