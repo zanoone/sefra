@@ -2,28 +2,19 @@ workflows:
   ios-sefra-workflow:
     name: iOS Sefra Build
     max_build_duration: 60
-    instance_type: mac_mini_m1
-
-    # Disable Flutter/React Native detection
+    instance_type: mac_mini_m2
     integrations:
       app_store_connect: codemagic
-
     environment:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: sefra.kr
-
       vars:
         XCODE_WORKSPACE: "SefraiOS.xcworkspace"
         XCODE_SCHEME: "SefraiOS"
         BUNDLE_ID: "sefra.kr"
-        APP_STORE_CONNECT_ISSUER_ID: "832d0d84-4c28-4d4d-b5a9-ba6a9064b307"
-        APP_STORE_CONNECT_KEY_IDENTIFIER: "U69P2JJX7K"
-        APP_STORE_CONNECT_PRIVATE_KEY_BASE64: "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR1RBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJIa3dkd0lCQVFRZ0gzYTlkTEtkTDNPNWEvZ3YKMmVjcUM3cUpTSlAwREU2cFA2cnhCMGlKWjdPZ0NnWUlLb1pJemowREFRZWhSQU5DQUFSYStVS0w3LzJHblZZRwpYRThqUGY5UU0wcE1mTVJYak1tKzFQTXhFZUl0enFTeDV6dDE0VW5Mak96c1dWclA3WmRucjdDdFN2czE2T1N4Cmo5RjNFL1RyCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0="
-
       xcode: latest
       cocoapods: default
-
     triggering:
       events:
         - push
@@ -36,54 +27,30 @@ workflows:
         - pattern: 'main'
           include: true
           source: true
-
     scripts:
-      - name: Skip Flutter dependency check
-        script: |
-          echo "Native iOS project - skipping Flutter"
-
-      - name: Set up App Store Connect API Key
-        script: |
-          mkdir -p ~/private_keys
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY_BASE64" | base64 --decode > ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
-
-      - name: Set up code signing settings on Xcode project
-        script: |
-          xcode-project use-profiles
-
       - name: Install CocoaPods dependencies
         script: |
           pod install
-
-      # Build number is managed manually in Info.plist
-      # Auto-increment script disabled due to version filtering issues
-      # Current build number: 28
-
+      - name: Set up provisioning profiles settings on Xcode project
+        script: xcode-project use-profiles
       - name: Build ipa for distribution
         script: |
           xcode-project build-ipa \
             --workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
-
-      - name: Publish to TestFlight
-        script: |
-          app-store-connect publish \
-            --path build/ios/ipa/*.ipa \
-            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
-            --private-key @file:$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8 \
-            --testflight
-
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
-
     publishing:
       email:
         recipients:
-          - your-email@example.com
+          - 01086162553a@gmail.com
         notify:
           success: true
-          failure: true
+          failure: false
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
