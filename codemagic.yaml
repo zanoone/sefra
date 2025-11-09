@@ -66,9 +66,6 @@ workflows:
           success: true
           failure: true
 
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-
-        # 선택사항: App Store 자동 제출
-        # submit_to_app_store: true
+      # TestFlight 배포는 UI에서 App Store Connect Integration 설정 후 활성화
+      # app_store_connect:
+      #   submit_to_testflight: true
