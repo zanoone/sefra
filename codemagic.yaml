@@ -27,10 +27,10 @@ workflows:
         - tag
         - pull_request
       branch_patterns:
-        - pattern: 'main'
+        - pattern: 'ios-app'
           include: true
           source: true
-        - pattern: 'develop'
+        - pattern: 'main'
           include: true
           source: true
 
