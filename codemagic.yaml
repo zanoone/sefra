@@ -67,6 +67,7 @@ workflows:
           failure: true
 
       app_store_connect:
+        auth: integration
         submit_to_testflight: true
 
         # 선택사항: App Store 자동 제출
