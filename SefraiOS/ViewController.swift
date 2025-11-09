@@ -170,6 +170,12 @@ extension ViewController: WKNavigationDelegate {
 
             console.log('✅ FCM 함수 준비됨: window.sendFCMTokenToServer(), window.getFCMToken()');
 
+            // 즉시 FCM 토큰 전송 시도 (로그인 여부 관계없이)
+            setTimeout(function() {
+                console.log('🔄 페이지 로드 직후 FCM 토큰 전송 시도...');
+                window.sendFCMTokenToServer();
+            }, 2000);
+
             // 로그인 성공 후 onB4xDataUpdated 함수가 준비될 때까지 대기
             var checkCount = 0;
             var maxChecks = 60; // 최대 60초 대기 (60회 * 1초)
@@ -180,9 +186,9 @@ extension ViewController: WKNavigationDelegate {
                     console.log('✅ onB4xDataUpdated 함수 발견됨 (로그인 완료)');
                     clearInterval(checkInterval);
 
-                    // FCM 토큰 자동 전송
+                    // FCM 토큰 재전송 (이중 보장)
                     setTimeout(function() {
-                        console.log('🔄 FCM 토큰 자동 전송 시도...');
+                        console.log('🔄 로그인 완료 후 FCM 토큰 재전송...');
                         window.sendFCMTokenToServer();
                     }, 500);
                 } else if (checkCount >= maxChecks) {
