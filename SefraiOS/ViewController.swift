@@ -170,31 +170,29 @@ extension ViewController: WKNavigationDelegate {
 
             console.log('✅ FCM 함수 준비됨: window.sendFCMTokenToServer(), window.getFCMToken()');
 
-            // 즉시 FCM 토큰 전송 시도 (로그인 여부 관계없이)
-            setTimeout(function() {
-                console.log('🔄 페이지 로드 직후 FCM 토큰 전송 시도...');
-                window.sendFCMTokenToServer();
-            }, 2000);
-
             // 로그인 성공 후 onB4xDataUpdated 함수가 준비될 때까지 대기
             var checkCount = 0;
-            var maxChecks = 60; // 최대 60초 대기 (60회 * 1초)
+            var maxChecks = 120; // 최대 120초 대기
             var checkInterval = setInterval(function() {
                 checkCount++;
 
                 if (typeof onB4xDataUpdated === 'function') {
-                    console.log('✅ onB4xDataUpdated 함수 발견됨 (로그인 완료)');
+                    console.log('✅✅✅ onB4xDataUpdated 함수 발견됨! (로그인 완료)');
                     clearInterval(checkInterval);
 
-                    // FCM 토큰 재전송 (이중 보장)
+                    // FCM 토큰 즉시 전송
+                    console.log('🚀🚀🚀 FCM 토큰 서버로 전송 시작!!!');
+                    window.sendFCMTokenToServer();
+
+                    // 혹시 모르니 1초 후에 한 번 더
                     setTimeout(function() {
-                        console.log('🔄 로그인 완료 후 FCM 토큰 재전송...');
+                        console.log('🚀🚀🚀 FCM 토큰 재전송 (확실하게)');
                         window.sendFCMTokenToServer();
-                    }, 500);
+                    }, 1000);
                 } else if (checkCount >= maxChecks) {
                     console.log('⚠️ onB4xDataUpdated 함수를 찾지 못함 (타임아웃)');
                     clearInterval(checkInterval);
-                } else if (checkCount % 10 === 0) {
+                } else if (checkCount % 5 === 0) {
                     console.log('⏳ onB4xDataUpdated 함수 대기 중... (' + checkCount + '초)');
                 }
             }, 1000);
@@ -453,50 +451,26 @@ extension ViewController: WKScriptMessageHandler {
             if (fcmToken && fcmToken.length > 0) {
                 console.log('FCM Token available:', fcmToken);
 
-                // 방법 1: onB4xDataUpdated 함수가 있으면 호출
+                // onB4xDataUpdated 함수가 있으면 호출 (이 함수가 서버로 보냄)
                 if (typeof onB4xDataUpdated === 'function') {
-                    console.log('✅ onB4xDataUpdated 함수 호출됨 (fcmToken 전달)');
+                    console.log('✅ onB4xDataUpdated 함수 호출됨 (fcmToken 전달) - 서버로 업로드됨');
                     onB4xDataUpdated({ fcmToken: fcmToken });
-                }
+                } else {
+                    console.warn('⚠️ onB4xDataUpdated 함수가 아직 준비되지 않음 (로그인 필요)');
 
-                // 방법 2: 직접 서버로 전송 (fetch API 사용)
-                if (typeof fetch === 'function') {
-                    console.log('🚀 서버로 FCM 토큰 직접 전송 시도...');
-
-                    // 쿠키에서 세션 정보 확인
-                    var cookies = document.cookie;
-                    var hasSession = cookies.includes('connect.sid') || cookies.includes('sessionid');
-
-                    if (hasSession || true) {  // 일단 무조건 전송 시도
-                        fetch('https://sefra.kr/api/device/token', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            credentials: 'include',
-                            body: JSON.stringify({
-                                token: fcmToken,
-                                platform: 'ios'
-                            })
-                        })
-                        .then(response => {
-                            if (response.ok) {
-                                console.log('✅ FCM 토큰 서버 전송 성공');
-                                return response.json();
-                            } else {
-                                console.warn('⚠️ FCM 토큰 서버 전송 실패:', response.status);
-                                throw new Error('Token upload failed');
-                            }
-                        })
-                        .then(data => {
-                            console.log('서버 응답:', data);
-                        })
-                        .catch(error => {
-                            console.error('FCM 토큰 전송 에러:', error);
-                        });
-                    } else {
-                        console.log('⏳ 로그인 대기 중...');
-                    }
+                    // 함수가 준비될 때까지 재시도
+                    var retryCount = 0;
+                    var retryInterval = setInterval(function() {
+                        retryCount++;
+                        if (typeof onB4xDataUpdated === 'function') {
+                            console.log('✅ onB4xDataUpdated 함수 발견! FCM 토큰 전송');
+                            onB4xDataUpdated({ fcmToken: fcmToken });
+                            clearInterval(retryInterval);
+                        } else if (retryCount > 30) {
+                            console.warn('⏰ onB4xDataUpdated 함수 대기 시간 초과');
+                            clearInterval(retryInterval);
+                        }
+                    }, 1000);
                 }
             } else {
                 console.warn('⚠️ FCM 토큰이 아직 없음');
