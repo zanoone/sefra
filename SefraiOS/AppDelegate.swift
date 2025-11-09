@@ -51,6 +51,30 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         print("APNs 토큰 등록 실패: \(error.localizedDescription)")
     }
+
+    // 백그라운드에서 푸시 알림 수신 (중요!)
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        print("========================================")
+        print("백그라운드 푸시 알림 수신")
+        print("========================================")
+        print("userInfo: \(userInfo)")
+
+        // FCM 데이터 메시지 처리
+        if let messageID = userInfo["gcm.message_id"] {
+            print("FCM Message ID: \(messageID)")
+        }
+
+        // 커스텀 데이터 처리
+        if let aps = userInfo["aps"] as? [String: Any] {
+            print("APS: \(aps)")
+        }
+
+        // Firebase Analytics 이벤트 전송
+        Messaging.messaging().appDidReceiveMessage(userInfo)
+
+        // 백그라운드 작업 완료
+        completionHandler(.newData)
+    }
 }
 
 // MARK: - MessagingDelegate
