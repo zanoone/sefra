@@ -5,10 +5,10 @@ platform :ios, '14.0'
 target 'SefraiOS' do
   use_frameworks!
 
-  # Firebase - Privacy Manifest 포함 버전
-  pod 'Firebase/Core', '10.18.0'
-  pod 'Firebase/Messaging', '10.18.0'
-  pod 'Firebase/Analytics', '10.18.0'
+  # Firebase - Privacy Manifest 완전 지원 버전 (Xcode 16 호환)
+  pod 'Firebase/Core', '~> 11.5'
+  pod 'Firebase/Messaging', '~> 11.5'
+  pod 'Firebase/Analytics', '~> 11.5'
 
 end
 
