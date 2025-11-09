@@ -51,7 +51,12 @@ workflows:
         script: |
           #!/bin/sh
           cd $CM_BUILD_DIR
-          BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$BUNDLE_ID") + 1))
+          BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$BUNDLE_ID" \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
+            --private-key @file:$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8) + 1))
+          echo "Latest build number from App Store: $((BUILD_NUMBER - 1))"
+          echo "Setting new build number to: $BUILD_NUMBER"
           agvtool new-version -all $BUILD_NUMBER
 
       - name: Build ipa for distribution
