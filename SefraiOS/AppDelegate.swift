@@ -1,6 +1,7 @@
 import UIKit
 import FirebaseCore
 import FirebaseMessaging
+import FirebaseInstallations
 import UserNotifications
 
 @main
@@ -19,16 +20,26 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // 🔥 GoogleService-Info.plist 앱 ID가 바뀌었으므로 FCM 토큰 강제 삭제 및 재발급
         let currentAppID = "1:490906882581:ios:cf31c2772398ca5e66741c"
         let savedAppID = UserDefaults.standard.string(forKey: "google_app_id")
-        let tokenResetFlag = UserDefaults.standard.bool(forKey: "fcm_token_reset_v40")
+        let tokenResetFlag = UserDefaults.standard.bool(forKey: "fcm_token_reset_v41")
 
         // 앱 ID가 바뀌었거나, 토큰 리셋 플래그가 false면 (한 번도 리셋 안 했으면)
         if savedAppID != currentAppID || !tokenResetFlag {
-            print("🔄 GoogleService-Info.plist 앱 ID가 변경됨!")
-            print("   기존: \(savedAppID ?? "없음")")
-            print("   새로: \(currentAppID)")
-            print("   → FCM 토큰 삭제 및 재발급 진행...")
+            print("========================================")
+            print("🔥 FCM 토큰 & Firebase Installations ID 강제 삭제")
+            print("   기존 앱 ID: \(savedAppID ?? "없음")")
+            print("   새 앱 ID: \(currentAppID)")
+            print("========================================")
 
-            // FCM 토큰 삭제
+            // 1단계: Firebase Installations ID 삭제 (Keychain에서 삭제)
+            Installations.installations().delete { error in
+                if let error = error {
+                    print("❌ Firebase Installations ID 삭제 실패: \(error.localizedDescription)")
+                } else {
+                    print("✅ Firebase Installations ID 삭제 성공! (Keychain 포함)")
+                }
+            }
+
+            // 2단계: FCM 토큰 삭제
             Messaging.messaging().deleteToken { error in
                 if let error = error {
                     print("❌ FCM 토큰 삭제 실패: \(error.localizedDescription)")
@@ -37,7 +48,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
                     // 새 앱 ID 저장 및 리셋 플래그 설정
                     UserDefaults.standard.set(currentAppID, forKey: "google_app_id")
-                    UserDefaults.standard.set(true, forKey: "fcm_token_reset_v40")
+                    UserDefaults.standard.set(true, forKey: "fcm_token_reset_v41")
                     UserDefaults.standard.synchronize()
 
                     // 토큰 즉시 재발급 요청
