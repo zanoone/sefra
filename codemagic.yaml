@@ -75,7 +75,7 @@ workflows:
           failure: true
 
       app_store_connect:
-        api_key: @file:$HOME/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_IDENTIFIER.p8
+        api_key: "@file:$HOME/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_IDENTIFIER.p8"
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
