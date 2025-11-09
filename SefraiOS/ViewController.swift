@@ -451,12 +451,52 @@ extension ViewController: WKScriptMessageHandler {
         (function() {
             var fcmToken = '\(token)';
             if (fcmToken && fcmToken.length > 0) {
-                console.log('FCM Token:', fcmToken);
+                console.log('FCM Token available:', fcmToken);
+
+                // 방법 1: onB4xDataUpdated 함수가 있으면 호출
                 if (typeof onB4xDataUpdated === 'function') {
+                    console.log('✅ onB4xDataUpdated 함수 호출됨 (fcmToken 전달)');
                     onB4xDataUpdated({ fcmToken: fcmToken });
-                    console.log('✅ onB4xDataUpdated 호출됨');
-                } else {
-                    console.warn('⚠️ onB4xDataUpdated 함수가 정의되지 않음 (로그인 필요)');
+                }
+
+                // 방법 2: 직접 서버로 전송 (fetch API 사용)
+                if (typeof fetch === 'function') {
+                    console.log('🚀 서버로 FCM 토큰 직접 전송 시도...');
+
+                    // 쿠키에서 세션 정보 확인
+                    var cookies = document.cookie;
+                    var hasSession = cookies.includes('connect.sid') || cookies.includes('sessionid');
+
+                    if (hasSession || true) {  // 일단 무조건 전송 시도
+                        fetch('https://sefra.kr/api/device/token', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                token: fcmToken,
+                                platform: 'ios'
+                            })
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                console.log('✅ FCM 토큰 서버 전송 성공');
+                                return response.json();
+                            } else {
+                                console.warn('⚠️ FCM 토큰 서버 전송 실패:', response.status);
+                                throw new Error('Token upload failed');
+                            }
+                        })
+                        .then(data => {
+                            console.log('서버 응답:', data);
+                        })
+                        .catch(error => {
+                            console.error('FCM 토큰 전송 에러:', error);
+                        });
+                    } else {
+                        console.log('⏳ 로그인 대기 중...');
+                    }
                 }
             } else {
                 console.warn('⚠️ FCM 토큰이 아직 없음');
