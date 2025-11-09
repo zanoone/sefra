@@ -154,21 +154,15 @@ extension ViewController: WKNavigationDelegate {
             console.log('✅ AndroidBiometric 브릿지 준비됨');
             console.log('✅ Native biometric available: true');
 
-            // FCM 토큰 전송 함수
-            window.sendFCMTokenToServer = function() {
-                window.webkit.messageHandlers.AndroidBiometric.postMessage({
-                    action: 'getFCMToken'
-                });
-            };
-
-            // FCM 토큰 가져오기 함수
+            // FCM 토큰 가져오기 함수 (필요시 사용)
             window.getFCMToken = function() {
                 window.webkit.messageHandlers.AndroidBiometric.postMessage({
                     action: 'getFCMToken'
                 });
             };
 
-            console.log('✅ FCM 함수 준비됨: window.sendFCMTokenToServer(), window.getFCMToken()');
+            // iOS에서 직접 토큰 저장 (UserDefaults에서 가져옴)
+            var iosFcmToken = '';
 
             // 로그인 성공 후 onB4xDataUpdated 함수가 준비될 때까지 대기
             var checkCount = 0;
@@ -180,15 +174,10 @@ extension ViewController: WKNavigationDelegate {
                     console.log('✅✅✅ onB4xDataUpdated 함수 발견됨! (로그인 완료)');
                     clearInterval(checkInterval);
 
-                    // FCM 토큰 즉시 전송
-                    console.log('🚀🚀🚀 FCM 토큰 서버로 전송 시작!!!');
-                    window.sendFCMTokenToServer();
-
-                    // 혹시 모르니 1초 후에 한 번 더
-                    setTimeout(function() {
-                        console.log('🚀🚀🚀 FCM 토큰 재전송 (확실하게)');
-                        window.sendFCMTokenToServer();
-                    }, 1000);
+                    // FCM 토큰 가져와서 바로 onB4xDataUpdated 호출
+                    window.webkit.messageHandlers.AndroidBiometric.postMessage({
+                        action: 'getFCMToken'
+                    });
                 } else if (checkCount >= maxChecks) {
                     console.log('⚠️ onB4xDataUpdated 함수를 찾지 못함 (타임아웃)');
                     clearInterval(checkInterval);
@@ -449,31 +438,18 @@ extension ViewController: WKScriptMessageHandler {
         (function() {
             var fcmToken = '\(token)';
             if (fcmToken && fcmToken.length > 0) {
-                console.log('FCM Token available:', fcmToken);
+                console.log('📱 iOS FCM Token:', fcmToken);
 
-                // onB4xDataUpdated 함수가 있으면 호출 (이 함수가 서버로 보냄)
+                // onB4xDataUpdated 함수 호출 (서버의 /api/update_fcm.php로 전송됨)
                 if (typeof onB4xDataUpdated === 'function') {
-                    console.log('✅ onB4xDataUpdated 함수 호출됨 (fcmToken 전달) - 서버로 업로드됨');
+                    console.log('✅ FCM 토큰을 서버로 전송합니다');
                     onB4xDataUpdated({ fcmToken: fcmToken });
+                    console.log('✅ onB4xDataUpdated({ fcmToken }) 호출 완료');
                 } else {
-                    console.warn('⚠️ onB4xDataUpdated 함수가 아직 준비되지 않음 (로그인 필요)');
-
-                    // 함수가 준비될 때까지 재시도
-                    var retryCount = 0;
-                    var retryInterval = setInterval(function() {
-                        retryCount++;
-                        if (typeof onB4xDataUpdated === 'function') {
-                            console.log('✅ onB4xDataUpdated 함수 발견! FCM 토큰 전송');
-                            onB4xDataUpdated({ fcmToken: fcmToken });
-                            clearInterval(retryInterval);
-                        } else if (retryCount > 30) {
-                            console.warn('⏰ onB4xDataUpdated 함수 대기 시간 초과');
-                            clearInterval(retryInterval);
-                        }
-                    }, 1000);
+                    console.error('❌ onB4xDataUpdated 함수가 없음 (로그인 안됨)');
                 }
             } else {
-                console.warn('⚠️ FCM 토큰이 아직 없음');
+                console.warn('⚠️ FCM 토큰이 없습니다');
             }
         })();
         """
