@@ -176,15 +176,34 @@ extension ViewController: WKNavigationDelegate {
             console.log('✅ AndroidBiometric 브릿지 준비됨');
             console.log('✅ Native biometric available: true');
 
-            console.log('✅ AndroidBiometric 브릿지 초기화 완료');
-
-            // iOS는 동기 호출 불가하므로, 네이티브가 직접 토큰 전송
-            // 페이지 로드 후 1초 뒤 자동 전송
-            setTimeout(function() {
-                console.log('🔄 FCM 토큰 자동 전송 요청 (네이티브로)...');
+            // FCM 토큰을 전역 함수로 노출 (안드로이드와 호환)
+            // iOS는 동기 호출 불가하므로 메시지만 전송
+            window.sendFCMTokenToServer = function() {
+                console.log('🔄 sendFCMTokenToServer 호출됨');
                 window.webkit.messageHandlers.AndroidBiometric.postMessage({
                     action: 'sendFCMToken'
                 });
+                return true;
+            };
+
+            // FCM 토큰 즉시 가져올 수 있는 함수 (안드로이드와 동일)
+            // iOS는 동기 반환 불가하므로 빈 문자열 반환
+            window.getFCMToken = function() {
+                console.log('⚠️ getFCMToken 호출 - iOS는 동기 불가, sendFCMTokenToServer() 사용 권장');
+                return '';
+            };
+
+            console.log('✅ FCM 함수 준비됨: window.sendFCMTokenToServer(), window.getFCMToken()');
+
+            // 페이지 로드 후 1초 뒤 자동 전송
+            setTimeout(function() {
+                console.log('🔄 FCM 토큰 자동 전송 시도...');
+                var result = window.sendFCMTokenToServer();
+                if (result) {
+                    console.log('✅ FCM 토큰 자동 전송 요청 완료');
+                } else {
+                    console.log('❌ FCM 토큰 자동 전송 실패');
+                }
             }, 1000);
 
             console.log('========================================');
