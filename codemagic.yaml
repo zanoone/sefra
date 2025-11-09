@@ -12,11 +12,7 @@ workflows:
       vars:
         XCODE_WORKSPACE: "SefraiOS.xcworkspace"
         XCODE_SCHEME: "SefraiOS"
-        BUNDLE_ID: "com.sefra"
-        APP_STORE_CONNECT_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
-        APP_STORE_CONNECT_KEY_IDENTIFIER: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
-        CERTIFICATE_PRIVATE_KEY: $CERTIFICATE_PRIVATE_KEY
+        BUNDLE_ID: "sefra.kr"
 
       xcode: 15.0
       cocoapods: default
@@ -47,8 +43,8 @@ workflows:
         script: |
           #!/bin/sh
           cd $CM_BUILD_DIR
-          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_CONNECT_ISSUER_ID" "$APP_STORE_CONNECT_KEY_IDENTIFIER" "$APP_STORE_CONNECT_PRIVATE_KEY" "$BUNDLE_ID")
-          agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
+          BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$BUNDLE_ID") + 1))
+          agvtool new-version -all $BUILD_NUMBER
 
       - name: Build ipa for distribution
         script: |
@@ -71,9 +67,6 @@ workflows:
           failure: true
 
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
 
         # 선택사항: App Store 자동 제출
