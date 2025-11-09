@@ -30,6 +30,9 @@ class ViewController: UIViewController {
         // 알림에서 URL 로드 알림 수신
         NotificationCenter.default.addObserver(self, selector: #selector(loadURLFromNotification(_:)), name: NSNotification.Name("LoadURLFromNotification"), object: nil)
 
+        // AppDelegate 로그 알림 수신
+        NotificationCenter.default.addObserver(self, selector: #selector(appDelegateLogReceived(_:)), name: NSNotification.Name("AppDelegateLog"), object: nil)
+
         // 초기 URL 로드
         loadInitialURL()
 
@@ -118,6 +121,11 @@ class ViewController: UIViewController {
         let request = URLRequest(url: url)
         webView.load(request)
         print("알림에서 URL 로드: \(urlString)")
+    }
+
+    @objc private func appDelegateLogReceived(_ notification: Notification) {
+        guard let logMessage = notification.object as? String else { return }
+        addDebugLog(logMessage)
     }
 
     deinit {
