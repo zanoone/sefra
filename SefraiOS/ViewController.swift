@@ -282,11 +282,11 @@ extension ViewController: WKUIDelegate {
         popup.uiDelegate = self
         self.popupWebView = popup
 
-        // 팝업 WebView 추가
+        // 팝업 WebView 추가 (SafeArea 아래에서 시작)
         view.addSubview(popup)
         popup.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            popup.topAnchor.constraint(equalTo: view.topAnchor),
+            popup.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             popup.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             popup.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             popup.bottomAnchor.constraint(equalTo: view.bottomAnchor)
