@@ -199,11 +199,11 @@ extension ViewController: WKNavigationDelegate {
                 return true;
             };
 
-            // FCM 토큰 즉시 가져올 수 있는 함수 (안드로이드와 동일)
-            // iOS는 동기 반환 불가하므로 빈 문자열 반환
+            // FCM 토큰 즉시 가져올 수 있는 함수 (iOS는 미리 저장된 토큰 반환)
             window.getFCMToken = function() {
-                console.log('⚠️ getFCMToken 호출 - iOS는 동기 불가, sendFCMTokenToServer() 사용 권장');
-                return '';
+                var token = localStorage.getItem('fcm_token') || '';
+                console.log('📱 getFCMToken 호출 - 토큰: ' + (token ? token.substring(0, 20) + '...' : '(없음)'));
+                return token;
             };
 
             console.log('✅ FCM 함수 준비됨: window.sendFCMTokenToServer(), window.getFCMToken()');
@@ -500,6 +500,8 @@ extension ViewController: WKScriptMessageHandler {
             var deviceId = '\(deviceId)';
 
             if (fcmToken && fcmToken.length > 0) {
+                // localStorage에 FCM 토큰 저장 (getFCMToken()에서 사용)
+                localStorage.setItem('fcm_token', fcmToken);
                 console.log('FCM Token available:', fcmToken.substring(0, 30) + '...');
                 console.log('Device ID:', deviceId);
 
