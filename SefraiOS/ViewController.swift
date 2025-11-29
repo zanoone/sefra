@@ -6,6 +6,7 @@ import FirebaseMessaging
 class ViewController: UIViewController {
 
     private var webView: WKWebView!
+    private var popupWebView: WKWebView?
     private var debugLogView: UITextView!
     private var debugLogs: [String] = []
     private var isDebugViewVisible = true
@@ -275,10 +276,47 @@ extension ViewController: WKUIDelegate {
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         guard let url = navigationAction.request.url else { return nil }
 
-        // window.open() 호출 시 현재 웹뷰에서 로드 (nice.checkplus.co.kr 팝업 지원)
-        // 팝업이 새 창이 아닌 현재 창에서 열리도록 처리
-        webView.load(URLRequest(url: url))
-        return nil
+        // window.open() 호출 시 새로운 팝업 WebView 생성 (nice.checkplus.co.kr 본인인증 팝업)
+        let popup = WKWebView(frame: view.bounds, configuration: configuration)
+        popup.navigationDelegate = self
+        popup.uiDelegate = self
+        self.popupWebView = popup
+
+        // 팝업 WebView 추가
+        view.addSubview(popup)
+        popup.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            popup.topAnchor.constraint(equalTo: view.topAnchor),
+            popup.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            popup.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            popup.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+
+        // 팝업 닫기 버튼 추가
+        let closeButton = UIButton(type: .system)
+        closeButton.setTitle("닫기", for: .normal)
+        closeButton.backgroundColor = UIColor(red: 0.9, green: 0.9, blue: 0.9, alpha: 0.9)
+        closeButton.setTitleColor(.black, for: .normal)
+        closeButton.addTarget(self, action: #selector(closePopup), for: .touchUpInside)
+        closeButton.layer.cornerRadius = 8
+        closeButton.clipsToBounds = true
+
+        popup.addSubview(closeButton)
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            closeButton.topAnchor.constraint(equalTo: popup.topAnchor, constant: 12),
+            closeButton.trailingAnchor.constraint(equalTo: popup.trailingAnchor, constant: -12),
+            closeButton.widthAnchor.constraint(equalToConstant: 60),
+            closeButton.heightAnchor.constraint(equalToConstant: 40)
+        ])
+
+        popup.load(URLRequest(url: url))
+        return popup
+    }
+
+    @objc private func closePopup() {
+        popupWebView?.removeFromSuperview()
+        popupWebView = nil
     }
 }
 
