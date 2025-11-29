@@ -52,6 +52,8 @@ class ViewController: UIViewController {
         // WKWebView 설정
         let preferences = WKPreferences()
         preferences.javaScriptEnabled = true
+        // window.open() 팝업 허용 (nice.checkplus.co.kr 본인인증 팝업 필요)
+        preferences.javaScriptCanOpenWindowsAutomatically = true
 
         let configuration = WKWebViewConfiguration()
         configuration.preferences = preferences
@@ -273,7 +275,8 @@ extension ViewController: WKUIDelegate {
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         guard let url = navigationAction.request.url else { return nil }
 
-        // 현재 웹뷰에서 로드
+        // window.open() 호출 시 현재 웹뷰에서 로드 (nice.checkplus.co.kr 팝업 지원)
+        // 팝업이 새 창이 아닌 현재 창에서 열리도록 처리
         webView.load(URLRequest(url: url))
         return nil
     }
