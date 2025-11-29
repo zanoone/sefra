@@ -6,6 +6,7 @@ import FirebaseMessaging
 class ViewController: UIViewController {
 
     private var webView: WKWebView!
+    private var popupWebView: WKWebView?
     private var debugLogView: UITextView!
     private var debugLogs: [String] = []
     private var isDebugViewVisible = true
@@ -279,6 +280,7 @@ extension ViewController: WKUIDelegate {
         let popup = WKWebView(frame: view.bounds, configuration: configuration)
         popup.navigationDelegate = self
         popup.uiDelegate = self
+        self.popupWebView = popup
 
         // 팝업 WebView 추가
         view.addSubview(popup)
@@ -292,6 +294,14 @@ extension ViewController: WKUIDelegate {
 
         popup.load(URLRequest(url: url))
         return popup
+    }
+
+    // 팝업 닫기 처리 (JavaScript window.close() 호출 시)
+    func webViewDidClose(_ webView: WKWebView) {
+        if webView == popupWebView {
+            popupWebView?.removeFromSuperview()
+            popupWebView = nil
+        }
     }
 }
 
