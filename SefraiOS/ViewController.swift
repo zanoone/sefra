@@ -23,7 +23,7 @@ class ViewController: UIViewController {
         view.backgroundColor = .white
 
         setupWebView()
-        // setupDebugLogView()
+        setupDebugLogView()
 
         // FCM 토큰 업데이트 알림 수신
         NotificationCenter.default.addObserver(self, selector: #selector(fcmTokenUpdated(_:)), name: NSNotification.Name("FCMTokenUpdated"), object: nil)
@@ -37,8 +37,8 @@ class ViewController: UIViewController {
         // 초기 URL 로드
         loadInitialURL()
 
-        // addDebugLog("🚀 앱 시작")
-        // addDebugLog("📱 Device ID: \(deviceId)")
+        addDebugLog("🚀 앱 시작")
+        addDebugLog("📱 Device ID: \(deviceId)")
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -64,6 +64,7 @@ class ViewController: UIViewController {
         // JavaScript Message Handler 추가
         let contentController = WKUserContentController()
         contentController.add(self, name: "AndroidBiometric")
+        contentController.add(self, name: "ConsoleLog")
         configuration.userContentController = contentController
 
         webView = WKWebView(frame: .zero, configuration: configuration)
@@ -146,6 +147,60 @@ extension ViewController: WKNavigationDelegate {
         // JavaScript 주입 (안드로이드와 완전히 동일한 로직!)
         let javascript = """
         (function() {
+            // console.log 캡처
+            var originalConsoleLog = console.log;
+            console.log = function() {
+                var message = Array.from(arguments).map(function(arg) {
+                    if (typeof arg === 'object') {
+                        try { return JSON.stringify(arg); } catch(e) { return String(arg); }
+                    }
+                    return String(arg);
+                }).join(' ');
+
+                window.webkit.messageHandlers.ConsoleLog.postMessage({
+                    message: message,
+                    type: 'log'
+                });
+
+                originalConsoleLog.apply(console, arguments);
+            };
+
+            // console.error 캡처
+            var originalConsoleError = console.error;
+            console.error = function() {
+                var message = Array.from(arguments).map(function(arg) {
+                    if (typeof arg === 'object') {
+                        try { return JSON.stringify(arg); } catch(e) { return String(arg); }
+                    }
+                    return String(arg);
+                }).join(' ');
+
+                window.webkit.messageHandlers.ConsoleLog.postMessage({
+                    message: message,
+                    type: 'error'
+                });
+
+                originalConsoleError.apply(console, arguments);
+            };
+
+            // console.warn 캡처
+            var originalConsoleWarn = console.warn;
+            console.warn = function() {
+                var message = Array.from(arguments).map(function(arg) {
+                    if (typeof arg === 'object') {
+                        try { return JSON.stringify(arg); } catch(e) { return String(arg); }
+                    }
+                    return String(arg);
+                }).join(' ');
+
+                window.webkit.messageHandlers.ConsoleLog.postMessage({
+                    message: message,
+                    type: 'warn'
+                });
+
+                originalConsoleWarn.apply(console, arguments);
+            };
+
             console.log('========================================');
             console.log('📱 iOS 네이티브 브릿지 초기화 시작');
 
@@ -308,6 +363,23 @@ extension ViewController: WKUIDelegate {
 extension ViewController: WKScriptMessageHandler {
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        // ConsoleLog 메시지 처리
+        if message.name == "ConsoleLog" {
+            if let body = message.body as? [String: Any],
+               let logMessage = body["message"] as? String,
+               let logType = body["type"] as? String {
+                var prefix = "📝"
+                if logType == "error" {
+                    prefix = "❌"
+                } else if logType == "warn" {
+                    prefix = "⚠️"
+                }
+                addDebugLog("\(prefix) \(logMessage)")
+            }
+            return
+        }
+
+        // AndroidBiometric 메시지 처리
         guard message.name == "AndroidBiometric",
               let body = message.body as? [String: Any],
               let action = body["action"] as? String else {
@@ -433,6 +505,13 @@ extension ViewController: WKScriptMessageHandler {
                             }
                         };
                         console.log('[BiometricAuth] RegData created:',JSON.stringify(regData));
+                        console.log('[BiometricAuth] ========== WEBAUTHN PAYLOAD ==========');
+                        console.log('[BiometricAuth] id:', regData.id);
+                        console.log('[BiometricAuth] rawId:', regData.rawId);
+                        console.log('[BiometricAuth] type:', regData.type);
+                        console.log('[BiometricAuth] response.clientDataJSON:', regData.response.clientDataJSON);
+                        console.log('[BiometricAuth] response.attestationObject:', regData.response.attestationObject);
+                        console.log('[BiometricAuth] ====================================');
                         if(window.onPasskeyRegistered){
                             console.log('[BiometricAuth] Calling onPasskeyRegistered...');
                             window.onPasskeyRegistered(JSON.stringify(regData));
@@ -525,24 +604,68 @@ extension ViewController: WKScriptMessageHandler {
 
     // MARK: - Debug Log View
     private func setupDebugLogView() {
+        // 컨테이너 뷰
+        let container = UIView()
+        container.backgroundColor = UIColor.black.withAlphaComponent(0.8)
+        container.layer.cornerRadius = 8
+        container.layer.masksToBounds = true
+        view.addSubview(container)
+
+        // 텍스트 뷰
         debugLogView = UITextView()
-        debugLogView.backgroundColor = UIColor.black.withAlphaComponent(0.8)
+        debugLogView.backgroundColor = .clear
         debugLogView.textColor = .white
         debugLogView.font = UIFont.monospacedSystemFont(ofSize: 10, weight: .regular)
         debugLogView.isEditable = false
         debugLogView.isScrollEnabled = true
-        debugLogView.layer.cornerRadius = 8
-        debugLogView.layer.masksToBounds = true
+        container.addSubview(debugLogView)
 
-        view.addSubview(debugLogView)
+        // 복사 버튼
+        let copyButton = UIButton(type: .system)
+        copyButton.setTitle("📋 Copy", for: .normal)
+        copyButton.setTitleColor(.white, for: .normal)
+        copyButton.backgroundColor = UIColor.blue.withAlphaComponent(0.7)
+        copyButton.layer.cornerRadius = 4
+        copyButton.addTarget(self, action: #selector(copyLogs), for: .touchUpInside)
+        copyButton.titleLabel?.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
+        container.addSubview(copyButton)
+
+        // 클리어 버튼
+        let clearButton = UIButton(type: .system)
+        clearButton.setTitle("🗑️ Clear", for: .normal)
+        clearButton.setTitleColor(.white, for: .normal)
+        clearButton.backgroundColor = UIColor.red.withAlphaComponent(0.7)
+        clearButton.layer.cornerRadius = 4
+        clearButton.addTarget(self, action: #selector(clearLogs), for: .touchUpInside)
+        clearButton.titleLabel?.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
+        container.addSubview(clearButton)
 
         // Auto Layout
+        container.translatesAutoresizingMaskIntoConstraints = false
         debugLogView.translatesAutoresizingMaskIntoConstraints = false
+        copyButton.translatesAutoresizingMaskIntoConstraints = false
+        clearButton.translatesAutoresizingMaskIntoConstraints = false
+
         NSLayoutConstraint.activate([
-            debugLogView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
-            debugLogView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
-            debugLogView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
-            debugLogView.heightAnchor.constraint(equalToConstant: 200)
+            container.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+            container.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+            container.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+            container.heightAnchor.constraint(equalToConstant: 220),
+
+            debugLogView.topAnchor.constraint(equalTo: container.topAnchor, constant: 4),
+            debugLogView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 4),
+            debugLogView.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -4),
+            debugLogView.bottomAnchor.constraint(equalTo: copyButton.topAnchor, constant: -4),
+
+            copyButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 4),
+            copyButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4),
+            copyButton.heightAnchor.constraint(equalToConstant: 32),
+            copyButton.widthAnchor.constraint(equalToConstant: 80),
+
+            clearButton.leadingAnchor.constraint(equalTo: copyButton.trailingAnchor, constant: 4),
+            clearButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4),
+            clearButton.heightAnchor.constraint(equalToConstant: 32),
+            clearButton.widthAnchor.constraint(equalToConstant: 80)
         ])
 
         // 더블탭으로 토글
@@ -557,6 +680,27 @@ extension ViewController: WKScriptMessageHandler {
         UIView.animate(withDuration: 0.3) {
             self.debugLogView.alpha = self.isDebugViewVisible ? 1.0 : 0.2
         }
+    }
+
+    @objc private func copyLogs() {
+        let logText = debugLogs.joined(separator: "\n")
+        UIPasteboard.general.string = logText
+
+        // 복사 성공 피드백
+        let alert = UIAlertController(title: "✅ 복사됨", message: "로그가 클립보드에 복사되었습니다.", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        present(alert, animated: true)
+    }
+
+    @objc private func clearLogs() {
+        debugLogs.removeAll()
+        DispatchQueue.main.async { [weak self] in
+            self?.debugLogView.text = ""
+        }
+
+        let alert = UIAlertController(title: "🗑️ 삭제됨", message: "모든 로그가 삭제되었습니다.", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        present(alert, animated: true)
     }
 
     private func addDebugLog(_ message: String) {
