@@ -23,7 +23,7 @@ class ViewController: UIViewController {
         view.backgroundColor = .white
 
         setupWebView()
-        setupDebugLogView()
+        //setupDebugLogView()
 
         // FCM 토큰 업데이트 알림 수신
         NotificationCenter.default.addObserver(self, selector: #selector(fcmTokenUpdated(_:)), name: NSNotification.Name("FCMTokenUpdated"), object: nil)
@@ -37,8 +37,8 @@ class ViewController: UIViewController {
         // 초기 URL 로드
         loadInitialURL()
 
-        addDebugLog("🚀 앱 시작")
-        addDebugLog("📱 Device ID: \(deviceId)")
+        //addDebugLog("🚀 앱 시작")
+        //addDebugLog("📱 Device ID: \(deviceId)")
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -124,7 +124,7 @@ class ViewController: UIViewController {
 
         let request = URLRequest(url: url)
         webView.load(request)
-        print("알림에서 URL 로드: \(urlString)")
+//print("알림에서 URL 로드: \(urlString)")
     }
 
     @objc private func appDelegateLogReceived(_ notification: Notification) {
@@ -149,7 +149,7 @@ extension ViewController: WKNavigationDelegate {
         (function() {
             // console.log 캡처
             var originalConsoleLog = console.log;
-            console.log = function() {
+            //console.log = function() {
                 var message = Array.from(arguments).map(function(arg) {
                     if (typeof arg === 'object') {
                         try { return JSON.stringify(arg); } catch(e) { return String(arg); }
@@ -167,7 +167,7 @@ extension ViewController: WKNavigationDelegate {
 
             // console.error 캡처
             var originalConsoleError = console.error;
-            console.error = function() {
+            //console.error = function() {
                 var message = Array.from(arguments).map(function(arg) {
                     if (typeof arg === 'object') {
                         try { return JSON.stringify(arg); } catch(e) { return String(arg); }
@@ -201,8 +201,8 @@ extension ViewController: WKNavigationDelegate {
                 originalConsoleWarn.apply(console, arguments);
             };
 
-            console.log('========================================');
-            console.log('📱 iOS 네이티브 브릿지 초기화 시작');
+            //console.log('========================================');
+            //console.log('📱 iOS 네이티브 브릿지 초기화 시작');
 
             // 자동완성 비활성화
             var inputs = document.querySelectorAll('input, textarea');
@@ -213,19 +213,19 @@ extension ViewController: WKNavigationDelegate {
             // PublicKeyCredential polyfill
             if (typeof window.PublicKeyCredential === 'undefined') {
                 window.PublicKeyCredential = function() {};
-                console.log('PublicKeyCredential polyfill injected');
+                //console.log('PublicKeyCredential polyfill injected');
             }
 
             // 안드로이드 호환 생체인증 브릿지
             window.AndroidBiometric = {
                 authenticate: function() {
-                    console.log('🔐 생체인증 호출: authenticate()');
+                    //console.log('🔐 생체인증 호출: authenticate()');
                     window.webkit.messageHandlers.AndroidBiometric.postMessage({
                         action: 'authenticate'
                     });
                 },
                 isAvailable: function() {
-                    console.log('🔍 생체인증 사용 가능 확인');
+                    //console.log('🔍 생체인증 사용 가능 확인');
                     window.webkit.messageHandlers.AndroidBiometric.postMessage({
                         action: 'isAvailable'
                     });
@@ -241,13 +241,13 @@ extension ViewController: WKNavigationDelegate {
                 }
             };
 
-            console.log('✅ AndroidBiometric 브릿지 준비됨');
-            console.log('✅ Native biometric available: true');
+            //console.log('✅ AndroidBiometric 브릿지 준비됨');
+            //console.log('✅ Native biometric available: true');
 
             // FCM 토큰을 전역 함수로 노출 (안드로이드와 호환)
             // iOS는 동기 호출 불가하므로 메시지만 전송
             window.sendFCMTokenToServer = function() {
-                console.log('🔄 sendFCMTokenToServer 호출됨');
+                //console.log('🔄 sendFCMTokenToServer 호출됨');
                 window.webkit.messageHandlers.AndroidBiometric.postMessage({
                     action: 'sendFCMToken'
                 });
@@ -256,24 +256,24 @@ extension ViewController: WKNavigationDelegate {
 
             // FCM 토큰 즉시 가져올 수 있는 함수 (iOS는 동기 반환 불가)
             window.getFCMToken = function() {
-                console.log('⚠️ getFCMToken 호출 - iOS는 동기 불가, sendFCMTokenToServer() 사용 권장');
+                //console.log('⚠️ getFCMToken 호출 - iOS는 동기 불가, sendFCMTokenToServer() 사용 권장');
                 return '';
             };
 
-            console.log('✅ FCM 함수 준비됨: window.sendFCMTokenToServer(), window.getFCMToken()');
+            //console.log('✅ FCM 함수 준비됨: window.sendFCMTokenToServer(), window.getFCMToken()');
 
             // 페이지 로드 후 1초 뒤 자동 전송
             setTimeout(function() {
-                console.log('🔄 FCM 토큰 자동 전송 시도...');
+                //console.log('🔄 FCM 토큰 자동 전송 시도...');
                 var result = window.sendFCMTokenToServer();
                 if (result) {
-                    console.log('✅ FCM 토큰 자동 전송 요청 완료');
+                    //console.log('✅ FCM 토큰 자동 전송 요청 완료');
                 } else {
-                    console.log('❌ FCM 토큰 자동 전송 실패');
+                    //console.log('❌ FCM 토큰 자동 전송 실패');
                 }
             }, 1000);
 
-            console.log('========================================');
+            //console.log('========================================');
         })();
         """
 
@@ -292,7 +292,7 @@ extension ViewController: WKNavigationDelegate {
         if !urlString.hasPrefix("http://") && !urlString.hasPrefix("https://") {
             if UIApplication.shared.canOpenURL(url) {
                 UIApplication.shared.open(url, options: [:], completionHandler: nil)
-                print("외부 앱 실행: \(urlString)")
+//print("외부 앱 실행: \(urlString)")
             }
             decisionHandler(.cancel)
             return
@@ -374,7 +374,7 @@ extension ViewController: WKScriptMessageHandler {
                 } else if logType == "warn" {
                     prefix = "⚠️"
                 }
-                addDebugLog("\(prefix) \(logMessage)")
+                //addDebugLog("\(prefix) \(logMessage)")
             }
             return
         }
@@ -400,20 +400,20 @@ extension ViewController: WKScriptMessageHandler {
             sendFCMTokenToWeb()
 
         default:
-            addDebugLog("⚠️ 알 수 없는 액션: \(action)")
+            //addDebugLog("⚠️ 알 수 없는 액션: \(action)")
         }
     }
 
     private func performBiometricAuthentication() {
-        print("========================================")
-        print("생체인증 시작")
-        print("========================================")
+//print("========================================")
+//print("생체인증 시작")
+//print("========================================")
 
         let context = LAContext()
         var error: NSError?
 
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
-            print("❌ 생체인증 사용 불가: \(error?.localizedDescription ?? "")")
+//print("❌ 생체인증 사용 불가: \(error?.localizedDescription ?? "")")
             sendBiometricResult(success: false, errorMessage: error?.localizedDescription ?? "생체인증을 사용할 수 없습니다")
             return
         }
@@ -423,10 +423,10 @@ extension ViewController: WKScriptMessageHandler {
         context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { [weak self] success, authenticationError in
             DispatchQueue.main.async {
                 if success {
-                    print("✅ 생체인증 성공")
+//print("✅ 생체인증 성공")
                     self?.handleBiometricSuccess()
                 } else {
-                    print("❌ 생체인증 실패: \(authenticationError?.localizedDescription ?? "")")
+//print("❌ 생체인증 실패: \(authenticationError?.localizedDescription ?? "")")
                     self?.sendBiometricResult(success: false, errorMessage: authenticationError?.localizedDescription ?? "인증 실패")
                 }
             }
@@ -448,10 +448,10 @@ extension ViewController: WKScriptMessageHandler {
                 let rpId = (rpIdResult as? String) ?? "sefra.kr"
                 let origin = "https://\(rpId)"
 
-                print("Challenge: \(challenge)")
-                print("RpId: \(rpId)")
-                print("Credential ID (string): \(credentialIdWithDeviceId)")
-                print("Origin: \(origin)")
+//print("Challenge: \(challenge)")
+//print("RpId: \(rpId)")
+//print("Credential ID (string): \(credentialIdWithDeviceId)")
+//print("Origin: \(origin)")
 
                 // ClientDataJSON 생성
                 let clientDataJSON = """
@@ -483,7 +483,7 @@ extension ViewController: WKScriptMessageHandler {
                 let javascript = """
                 javascript:(function(){
                     try{
-                        console.log('[BiometricAuth] JavaScript execution started');
+                        //console.log('[BiometricAuth] JavaScript execution started');
                         var d={
                             id:'\(credentialIdWithDeviceId)',
                             type:'public-key',
@@ -494,13 +494,13 @@ extension ViewController: WKScriptMessageHandler {
                             device_id:'\(self.deviceId)',
                             timestamp:\(timestamp)
                         };
-                        console.log('[BiometricAuth] PasskeyData object created:',JSON.stringify(d));
+                        //console.log('[BiometricAuth] PasskeyData object created:',JSON.stringify(d));
                         if(window.onBiometricResult){
-                            console.log('[BiometricAuth] Calling onBiometricResult...');
+                            //console.log('[BiometricAuth] Calling onBiometricResult...');
                             window.onBiometricResult(true,'Success',d);
-                            console.log('[BiometricAuth] onBiometricResult called OK');
+                            //console.log('[BiometricAuth] onBiometricResult called OK');
                         }else{
-                            console.log('[BiometricAuth] ⚠️ window.onBiometricResult NOT FOUND');
+                            //console.log('[BiometricAuth] ⚠️ window.onBiometricResult NOT FOUND');
                         }
                         var regData={
                             id:'\(credentialIdWithDeviceId)',
@@ -511,43 +511,43 @@ extension ViewController: WKScriptMessageHandler {
                                 attestationObject:'\(attestationBase64)'
                             }
                         };
-                        console.log('[BiometricAuth] RegData created:',JSON.stringify(regData));
-                        console.log('[BiometricAuth] ========== WEBAUTHN PAYLOAD ==========');
-                        console.log('[BiometricAuth] id:', regData.id);
-                        console.log('[BiometricAuth] rawId:', regData.rawId);
-                        console.log('[BiometricAuth] type:', regData.type);
-                        console.log('[BiometricAuth] response.clientDataJSON:', regData.response.clientDataJSON);
-                        console.log('[BiometricAuth] response.attestationObject:', regData.response.attestationObject);
-                        console.log('[BiometricAuth] ====================================');
+                        //console.log('[BiometricAuth] RegData created:',JSON.stringify(regData));
+                        //console.log('[BiometricAuth] ========== WEBAUTHN PAYLOAD ==========');
+                        //console.log('[BiometricAuth] id:', regData.id);
+                        //console.log('[BiometricAuth] rawId:', regData.rawId);
+                        //console.log('[BiometricAuth] type:', regData.type);
+                        //console.log('[BiometricAuth] response.clientDataJSON:', regData.response.clientDataJSON);
+                        //console.log('[BiometricAuth] response.attestationObject:', regData.response.attestationObject);
+                        //console.log('[BiometricAuth] ====================================');
                         if(window.onPasskeyRegistered){
-                            console.log('[BiometricAuth] Calling onPasskeyRegistered...');
+                            //console.log('[BiometricAuth] Calling onPasskeyRegistered...');
                             window.onPasskeyRegistered(JSON.stringify(regData));
-                            console.log('[BiometricAuth] onPasskeyRegistered called OK');
+                            //console.log('[BiometricAuth] onPasskeyRegistered called OK');
                         }else{
-                            console.log('[BiometricAuth] ℹ️ window.onPasskeyRegistered NOT FOUND');
+                            //console.log('[BiometricAuth] ℹ️ window.onPasskeyRegistered NOT FOUND');
                         }
                         if(window.onBiometricLoginSuccess){
-                            console.log('[BiometricAuth] Calling onBiometricLoginSuccess...');
+                            //console.log('[BiometricAuth] Calling onBiometricLoginSuccess...');
                             window.onBiometricLoginSuccess(d);
-                            console.log('[BiometricAuth] ✅ onBiometricLoginSuccess called OK');
+                            //console.log('[BiometricAuth] ✅ onBiometricLoginSuccess called OK');
                         }else{
-                            console.log('[BiometricAuth] ⚠️ window.onBiometricLoginSuccess NOT FOUND');
+                            //console.log('[BiometricAuth] ⚠️ window.onBiometricLoginSuccess NOT FOUND');
                         }
-                        console.log('[BiometricAuth] JavaScript execution finished');
+                        //console.log('[BiometricAuth] JavaScript execution finished');
                     }catch(e){
-                        console.error('[BiometricAuth] ❌ JavaScript Error:',e);
-                        console.error('[BiometricAuth] Error stack:',e.stack);
+                        //console.error('[BiometricAuth] ❌ JavaScript Error:',e);
+                        //console.error('[BiometricAuth] Error stack:',e.stack);
                         alert('BiometricAuth JS Error: '+e.message);
                     }
                 })();
                 """
 
-                print("=== JavaScript 실행 ===")
+//print("=== JavaScript 실행 ===")
                 self.webView.evaluateJavaScript(javascript) { result, error in
                     if let error = error {
-                        print("❌ JavaScript 실행 오류: \(error.localizedDescription)")
+//print("❌ JavaScript 실행 오류: \(error.localizedDescription)")
                     } else {
-                        print("✅ JavaScript 실행 완료")
+//print("✅ JavaScript 실행 완료")
                     }
                 }
             }
@@ -585,15 +585,15 @@ extension ViewController: WKScriptMessageHandler {
             var deviceId = '\(deviceId)';
 
             if (fcmToken && fcmToken.length > 0) {
-                console.log('FCM Token available:', fcmToken.substring(0, 30) + '...');
-                console.log('Device ID:', deviceId);
+                //console.log('FCM Token available:', fcmToken.substring(0, 30) + '...');
+                //console.log('Device ID:', deviceId);
 
                 if (typeof onB4xDataUpdated === 'function') {
                     onB4xDataUpdated({
                         fcmToken: fcmToken,
                         deviceId: deviceId
                     });
-                    console.log('✅ onB4xDataUpdated 함수 호출됨 (fcmToken + deviceId 전달)');
+                    //console.log('✅ onB4xDataUpdated 함수 호출됨 (fcmToken + deviceId 전달)');
                     return true;
                 } else {
                     console.warn('⚠️ onB4xDataUpdated 함수가 정의되지 않음');
@@ -769,7 +769,7 @@ extension ViewController: WKScriptMessageHandler {
         }
 
         // 콘솔에도 출력
-        print(logMessage)
+//print(logMessage)
     }
 
 }
