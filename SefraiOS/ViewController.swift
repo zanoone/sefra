@@ -203,6 +203,9 @@ extension ViewController: WKNavigationDelegate {
             window.getFCMToken = function() {
                 var token = localStorage.getItem('fcm_token') || '';
                 console.log('📱 getFCMToken 호출 - 토큰: ' + (token ? token.substring(0, 20) + '...' : '(없음)'));
+                if (!token || token.length === 0) {
+                    alert('[DEBUG] FCM Token is EMPTY!\nlocalStorage fcm_token: ' + (token || 'undefined'));
+                }
                 return token;
             };
 
@@ -434,12 +437,16 @@ extension ViewController: WKScriptMessageHandler {
                             }
                         };
                         console.log('[BiometricAuth] RegData created:',JSON.stringify(regData));
+                        alert('[WebAuthn Debug] RegData:\n' + JSON.stringify(regData, null, 2));
                         if(window.onPasskeyRegistered){
                             console.log('[BiometricAuth] Calling onPasskeyRegistered...');
+                            alert('[WebAuthn Debug] Calling onPasskeyRegistered with data');
                             window.onPasskeyRegistered(JSON.stringify(regData));
                             console.log('[BiometricAuth] onPasskeyRegistered called OK');
+                            alert('[WebAuthn Debug] onPasskeyRegistered executed');
                         }else{
                             console.log('[BiometricAuth] ℹ️ window.onPasskeyRegistered NOT FOUND');
+                            alert('[WebAuthn Debug] ERROR: window.onPasskeyRegistered NOT FOUND');
                         }
                         if(window.onBiometricLoginSuccess){
                             console.log('[BiometricAuth] Calling onBiometricLoginSuccess...');
