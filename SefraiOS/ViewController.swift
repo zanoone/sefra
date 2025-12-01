@@ -149,7 +149,7 @@ extension ViewController: WKNavigationDelegate {
         (function() {
             // console.log 캡처
             var originalConsoleLog = console.log;
-            //console.log = function() {
+            console.log = function() {
                 var message = Array.from(arguments).map(function(arg) {
                     if (typeof arg === 'object') {
                         try { return JSON.stringify(arg); } catch(e) { return String(arg); }
@@ -167,7 +167,7 @@ extension ViewController: WKNavigationDelegate {
 
             // console.error 캡처
             var originalConsoleError = console.error;
-            //console.error = function() {
+            console.error = function() {
                 var message = Array.from(arguments).map(function(arg) {
                     if (typeof arg === 'object') {
                         try { return JSON.stringify(arg); } catch(e) { return String(arg); }
