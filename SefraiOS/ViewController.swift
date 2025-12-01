@@ -199,14 +199,10 @@ extension ViewController: WKNavigationDelegate {
                 return true;
             };
 
-            // FCM 토큰 즉시 가져올 수 있는 함수 (iOS는 미리 저장된 토큰 반환)
+            // FCM 토큰 즉시 가져올 수 있는 함수 (iOS는 동기 반환 불가)
             window.getFCMToken = function() {
-                var token = localStorage.getItem('fcm_token') || '';
-                console.log('📱 getFCMToken 호출 - 토큰: ' + (token ? token.substring(0, 20) + '...' : '(없음)'));
-                if (!token || token.length === 0) {
-                    alert('[DEBUG] FCM Token is EMPTY!\nlocalStorage fcm_token: ' + (token || 'undefined'));
-                }
-                return token;
+                console.log('⚠️ getFCMToken 호출 - iOS는 동기 불가, sendFCMTokenToServer() 사용 권장');
+                return '';
             };
 
             console.log('✅ FCM 함수 준비됨: window.sendFCMTokenToServer(), window.getFCMToken()');
@@ -437,16 +433,12 @@ extension ViewController: WKScriptMessageHandler {
                             }
                         };
                         console.log('[BiometricAuth] RegData created:',JSON.stringify(regData));
-                        alert('[WebAuthn Debug] RegData:\n' + JSON.stringify(regData, null, 2));
                         if(window.onPasskeyRegistered){
                             console.log('[BiometricAuth] Calling onPasskeyRegistered...');
-                            alert('[WebAuthn Debug] Calling onPasskeyRegistered with data');
                             window.onPasskeyRegistered(JSON.stringify(regData));
                             console.log('[BiometricAuth] onPasskeyRegistered called OK');
-                            alert('[WebAuthn Debug] onPasskeyRegistered executed');
                         }else{
                             console.log('[BiometricAuth] ℹ️ window.onPasskeyRegistered NOT FOUND');
-                            alert('[WebAuthn Debug] ERROR: window.onPasskeyRegistered NOT FOUND');
                         }
                         if(window.onBiometricLoginSuccess){
                             console.log('[BiometricAuth] Calling onBiometricLoginSuccess...');
@@ -459,8 +451,6 @@ extension ViewController: WKScriptMessageHandler {
                     }catch(e){
                         console.error('[BiometricAuth] ❌ JavaScript Error:',e);
                         console.error('[BiometricAuth] Error stack:',e.stack);
-                        var errorMsg = '[CRITICAL ERROR]\n\nMessage: ' + e.message + '\n\nStack: ' + (e.stack ? e.stack.substring(0, 200) : 'N/A');
-                        alert(errorMsg);
                         alert('BiometricAuth JS Error: '+e.message);
                     }
                 })();
@@ -509,8 +499,6 @@ extension ViewController: WKScriptMessageHandler {
             var deviceId = '\(deviceId)';
 
             if (fcmToken && fcmToken.length > 0) {
-                // localStorage에 FCM 토큰 저장 (getFCMToken()에서 사용)
-                localStorage.setItem('fcm_token', fcmToken);
                 console.log('FCM Token available:', fcmToken.substring(0, 30) + '...');
                 console.log('Device ID:', deviceId);
 
