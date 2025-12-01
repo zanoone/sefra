@@ -401,6 +401,7 @@ extension ViewController: WKScriptMessageHandler {
 
         default:
             //addDebugLog("⚠️ 알 수 없는 액션: \(action)")
+            break
         }
     }
 
