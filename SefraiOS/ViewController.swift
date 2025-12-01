@@ -435,7 +435,9 @@ extension ViewController: WKScriptMessageHandler {
 
     private func handleBiometricSuccess() {
         let timestamp = Int(Date().timeIntervalSince1970 * 1000)
-        let credentialId = "ios_biometric_\(deviceId)"
+        // Binary credential ID 생성 (32 bytes random) + device_id suffix
+        let credentialIdBinary = [UInt8](repeating: 0, count: 32).map { _ in UInt8.random(in: 0...255) }
+        let credentialIdWithDeviceId = "ios_\(deviceId)_\(timestamp)"
 
         // Challenge와 RpId 가져오기
         webView.evaluateJavaScript("window.passkeyChallenge") { [weak self] challengeResult, _ in
@@ -448,7 +450,7 @@ extension ViewController: WKScriptMessageHandler {
 
                 print("Challenge: \(challenge)")
                 print("RpId: \(rpId)")
-                print("Credential ID: \(credentialId)")
+                print("Credential ID (string): \(credentialIdWithDeviceId)")
                 print("Origin: \(origin)")
 
                 // ClientDataJSON 생성
@@ -460,17 +462,18 @@ extension ViewController: WKScriptMessageHandler {
                     .replacingOccurrences(of: "/", with: "_")
                     .replacingOccurrences(of: "=", with: "") ?? ""
 
-                // AttestationObject 생성
+                // AttestationObject 생성 (더미)
                 let attestationObject = "ios_biometric_attestation"
                 let attestationBase64 = attestationObject.data(using: .utf8)?.base64EncodedString()
                     .replacingOccurrences(of: "+", with: "-")
                     .replacingOccurrences(of: "/", with: "_")
                     .replacingOccurrences(of: "=", with: "") ?? ""
 
-                let credentialIdBase64 = credentialId.data(using: .utf8)?.base64EncodedString()
+                // rawId: binary credential ID를 base64url로 인코딩
+                let credentialIdBase64 = Data(credentialIdBinary).base64EncodedString()
                     .replacingOccurrences(of: "+", with: "-")
                     .replacingOccurrences(of: "/", with: "_")
-                    .replacingOccurrences(of: "=", with: "") ?? ""
+                    .replacingOccurrences(of: "=", with: "")
 
                 // JavaScript 실행
                 let javascript = """
@@ -478,7 +481,7 @@ extension ViewController: WKScriptMessageHandler {
                     try{
                         console.log('[BiometricAuth] JavaScript execution started');
                         var d={
-                            id:'\(credentialId)',
+                            id:'\(credentialIdWithDeviceId)',
                             type:'public-key',
                             clientDataJSON:'\(clientDataBase64)',
                             attestationObject:'\(attestationBase64)',
@@ -496,7 +499,7 @@ extension ViewController: WKScriptMessageHandler {
                             console.log('[BiometricAuth] ⚠️ window.onBiometricResult NOT FOUND');
                         }
                         var regData={
-                            id:'\(credentialId)',
+                            id:'\(credentialIdWithDeviceId)',
                             rawId:'\(credentialIdBase64)',
                             type:'public-key',
                             response:{
@@ -620,6 +623,16 @@ extension ViewController: WKScriptMessageHandler {
         debugLogView.isScrollEnabled = true
         container.addSubview(debugLogView)
 
+        // 토글 버튼 (접기/펼치기)
+        let toggleButton = UIButton(type: .system)
+        toggleButton.setTitle("▼ Debug", for: .normal)
+        toggleButton.setTitleColor(.white, for: .normal)
+        toggleButton.backgroundColor = UIColor.gray.withAlphaComponent(0.7)
+        toggleButton.layer.cornerRadius = 4
+        toggleButton.addTarget(self, action: #selector(toggleDebugViewSize), for: .touchUpInside)
+        toggleButton.titleLabel?.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
+        container.addSubview(toggleButton)
+
         // 복사 버튼
         let copyButton = UIButton(type: .system)
         copyButton.setTitle("📋 Copy", for: .normal)
@@ -643,21 +656,30 @@ extension ViewController: WKScriptMessageHandler {
         // Auto Layout
         container.translatesAutoresizingMaskIntoConstraints = false
         debugLogView.translatesAutoresizingMaskIntoConstraints = false
+        toggleButton.translatesAutoresizingMaskIntoConstraints = false
         copyButton.translatesAutoresizingMaskIntoConstraints = false
         clearButton.translatesAutoresizingMaskIntoConstraints = false
+
+        let heightConstraint = container.heightAnchor.constraint(equalToConstant: 220)
+        heightConstraint.identifier = "debugHeight"
 
         NSLayoutConstraint.activate([
             container.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
             container.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
             container.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
-            container.heightAnchor.constraint(equalToConstant: 220),
+            heightConstraint,
 
             debugLogView.topAnchor.constraint(equalTo: container.topAnchor, constant: 4),
             debugLogView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 4),
             debugLogView.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -4),
-            debugLogView.bottomAnchor.constraint(equalTo: copyButton.topAnchor, constant: -4),
+            debugLogView.bottomAnchor.constraint(equalTo: toggleButton.topAnchor, constant: -4),
 
-            copyButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 4),
+            toggleButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 4),
+            toggleButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4),
+            toggleButton.heightAnchor.constraint(equalToConstant: 32),
+            toggleButton.widthAnchor.constraint(equalToConstant: 80),
+
+            copyButton.leadingAnchor.constraint(equalTo: toggleButton.trailingAnchor, constant: 4),
             copyButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4),
             copyButton.heightAnchor.constraint(equalToConstant: 32),
             copyButton.widthAnchor.constraint(equalToConstant: 80),
@@ -669,16 +691,37 @@ extension ViewController: WKScriptMessageHandler {
         ])
 
         // 더블탭으로 토글
-        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(toggleDebugView))
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(toggleDebugViewAlpha))
         doubleTap.numberOfTapsRequired = 2
         debugLogView.addGestureRecognizer(doubleTap)
         debugLogView.isUserInteractionEnabled = true
     }
 
-    @objc private func toggleDebugView() {
+    @objc private func toggleDebugViewSize() {
         isDebugViewVisible.toggle()
         UIView.animate(withDuration: 0.3) {
-            self.debugLogView.alpha = self.isDebugViewVisible ? 1.0 : 0.2
+            if let container = self.debugLogView.superview {
+                if self.isDebugViewVisible {
+                    // 펼치기
+                    if let heightConstraint = container.constraints.first(where: { $0.identifier == "debugHeight" }) {
+                        heightConstraint.constant = 220
+                    }
+                } else {
+                    // 접기
+                    if let heightConstraint = container.constraints.first(where: { $0.identifier == "debugHeight" }) {
+                        heightConstraint.constant = 50
+                    }
+                }
+                self.view.layoutIfNeeded()
+            }
+        }
+    }
+
+    @objc private func toggleDebugViewAlpha() {
+        // 더블탭: 투명도 조절
+        let currentAlpha = self.debugLogView.alpha
+        UIView.animate(withDuration: 0.2) {
+            self.debugLogView.alpha = currentAlpha > 0.5 ? 0.2 : 1.0
         }
     }
 
