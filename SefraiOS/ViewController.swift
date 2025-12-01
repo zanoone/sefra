@@ -462,8 +462,12 @@ extension ViewController: WKScriptMessageHandler {
                     .replacingOccurrences(of: "/", with: "_")
                     .replacingOccurrences(of: "=", with: "") ?? ""
 
-                // AttestationObject 생성 (더미)
-                let attestationObject = "ios_biometric_attestation"
+                // AttestationObject 생성 (none 형식의 mock CBOR)
+                // Format: {"fmt":"none","attStmt":{},"authData":"..."}
+                let mockAuthData = "SZYN5OtQZAiCY9uNLcMo8Q"  // Mock 32-byte authData
+                let attestationObject = """
+                {"fmt":"none","attStmt":{},"authData":"\(mockAuthData)"}
+                """
                 let attestationBase64 = attestationObject.data(using: .utf8)?.base64EncodedString()
                     .replacingOccurrences(of: "+", with: "-")
                     .replacingOccurrences(of: "/", with: "_")
