@@ -459,6 +459,8 @@ extension ViewController: WKScriptMessageHandler {
                     }catch(e){
                         console.error('[BiometricAuth] ❌ JavaScript Error:',e);
                         console.error('[BiometricAuth] Error stack:',e.stack);
+                        var errorMsg = '[CRITICAL ERROR]\n\nMessage: ' + e.message + '\n\nStack: ' + (e.stack ? e.stack.substring(0, 200) : 'N/A');
+                        alert(errorMsg);
                         alert('BiometricAuth JS Error: '+e.message);
                     }
                 })();
