@@ -42,6 +42,8 @@ workflows:
             -scheme "$XCODE_SCHEME" \
             -archivePath "$CM_BUILD_DIR/build/ios/app.xcarchive" \
             -configuration Release \
+            -allowProvisioningUpdates \
+            CODE_SIGN_STYLE=Automatic \
             archive
       - name: Export ipa
         script: |
