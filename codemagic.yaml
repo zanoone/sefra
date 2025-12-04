@@ -40,8 +40,7 @@ workflows:
         script: |
           xcode-project build-ipa \
             --workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME" \
-            --export-options-plist "$CM_BUILD_DIR/export_options.plist"
+            --scheme "$XCODE_SCHEME"
       - name: Publish to TestFlight
         script: |
           app-store-connect publish \
