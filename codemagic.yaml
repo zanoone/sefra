@@ -36,6 +36,9 @@ workflows:
       - name: Install CocoaPods dependencies
         script: |
           pod install
+      - name: Set up signing
+        script: |
+          xcode-project use-profiles
       - name: Build ipa for distribution
         script: |
           xcodebuild -workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
