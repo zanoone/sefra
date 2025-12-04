@@ -36,6 +36,9 @@ workflows:
       - name: Install CocoaPods dependencies
         script: |
           pod install
+      - name: Copy export options to build directory
+        script: |
+          cp export_options.plist /Users/builder/ || true
       - name: Build ipa for distribution
         script: |
           xcode-project build-ipa \
