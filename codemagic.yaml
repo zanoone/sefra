@@ -39,12 +39,14 @@ workflows:
       - name: Copy export options to build directory
         script: |
           cp export_options.plist /Users/builder/ || true
+      - name: Set up provisioning profiles in Xcode
+        script: |
+          xcode-project use-profiles
       - name: Build ipa for distribution
         script: |
           xcode-project build-ipa \
             --workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME" \
-            -v
+            --scheme "$XCODE_SCHEME"
       - name: Publish to TestFlight
         script: |
           app-store-connect publish \
