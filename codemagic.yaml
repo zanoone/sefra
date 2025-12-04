@@ -39,6 +39,9 @@ workflows:
       - name: Verify export options
         script: |
           ls -la "$CM_BUILD_DIR/export_options.plist" || echo "File will be found by xcode-project"
+      - name: Set up provisioning profiles
+        script: |
+          xcode-project use-profiles
       - name: Build ipa for distribution
         script: |
           xcode-project build-ipa \
