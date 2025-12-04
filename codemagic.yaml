@@ -36,25 +36,11 @@ workflows:
       - name: Install CocoaPods dependencies
         script: |
           pod install
-      - name: Set up signing
-        script: |
-          xcode-project use-profiles
       - name: Build ipa for distribution
         script: |
-          xcodebuild -workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
-            -scheme "$XCODE_SCHEME" \
-            -archivePath "$CM_BUILD_DIR/build/ios/app.xcarchive" \
-            -configuration Release \
-            -allowProvisioningUpdates \
-            CODE_SIGN_STYLE=Automatic \
-            archive
-      - name: Export ipa
-        script: |
-          xcodebuild -exportArchive \
-            -archivePath "$CM_BUILD_DIR/build/ios/app.xcarchive" \
-            -exportPath "$CM_BUILD_DIR/build/ios/ipa" \
-            -exportOptionsPlist /dev/null \
-            -allowProvisioningUpdates
+          xcode-project build-ipa \
+            --workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
       - name: Publish to TestFlight
         script: |
           app-store-connect publish \
